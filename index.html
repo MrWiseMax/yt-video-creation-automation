@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crate Video Pipeline — Step-by-Step Guide</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+
+  <!-- ======================= SIDEBAR ======================= -->
+  <aside>
+    <div class="brand">
+      <h1>🎬 Crate Video Pipeline</h1>
+      <p>Idea → finished Premiere timeline</p>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-label" id="progressLabel">0 / 9 steps done</div>
+    </div>
+    <div class="cloudbox">
+      <div class="worklabel" id="workLabel"><span>Working on:</span> Untitled video</div>
+      <button class="btn savebtn" id="saveVideoBtn">☁ Save video</button>
+      <div class="cloudstatus" id="cloudStatus">Connecting to Supabase…</div>
+    </div>
+    <div class="navstep" data-step="setup"><span class="dot">⚙</span><span>Setup — samples &amp; duration</span></div>
+    <div class="navstep" data-step="videos"><span class="dot">📂</span><span>My videos</span></div>
+    <div class="nav-sep"></div>
+    <div class="navstep" data-step="s1"><span class="dot">1</span><span>Video details → script prompt</span></div>
+    <div class="navstep" data-step="s2"><span class="dot">2</span><span>Script → scene prompts</span></div>
+    <div class="navstep" data-step="s3"><span class="dot">3</span><span>Make the Flow prompt list</span></div>
+    <div class="navstep" data-step="s4"><span class="dot">4</span><span>Generate images on Flow</span></div>
+    <div class="navstep" data-step="s5"><span class="dot">5</span><span>Rename the images</span></div>
+    <div class="navstep" data-step="s6"><span class="dot">6</span><span>Record the voice-over</span></div>
+    <div class="navstep" data-step="s7"><span class="dot">7</span><span>Create Transcript.srt</span></div>
+    <div class="navstep" data-step="s8"><span class="dot">8</span><span>Build the timeline</span></div>
+    <div class="navstep" data-step="s9"><span class="dot">9</span><span>Import into Premiere</span></div>
+    <div class="nav-sep"></div>
+    <div class="navstep" data-step="ref"><span class="dot">📖</span><span>Reference — files &amp; commands</span></div>
+    <button class="newvideo-btn" id="newVideoBtn">🔄 Start a new video (reset steps)</button>
+  </aside>
+
+  <!-- ======================= MAIN ======================= -->
+  <main>
+
+    <!-- ============ SETUP ============ -->
+    <section class="panel" id="panel-setup">
+      <span class="step-tag">One-time setup · shared by all videos</span>
+      <h2>Sample scripts &amp; target duration</h2>
+      <p class="lede">Paste 2–3 full scripts from your channel's previous videos — the AI studies them to
+      clone your tone on every new video. These and the target duration are global settings, stored in
+      your Supabase cloud and saved automatically as you type.</p>
+      <div class="card">
+        <label for="sample1">Sample script 1</label>
+        <textarea id="sample1" class="mono" rows="7" placeholder="Paste the full voice-over script of a previous video..."></textarea>
+        <label for="sample2">Sample script 2</label>
+        <textarea id="sample2" class="mono" rows="7" placeholder="Paste another previous script..."></textarea>
+        <label for="sample3">Sample script 3 (optional)</label>
+        <textarea id="sample3" class="mono" rows="7" placeholder="Optional third script — leave empty if unused"></textarea>
+        <label for="duration">Target video length (minutes) — used by every new script</label>
+        <input type="text" id="duration" placeholder="e.g. 8-12  or  10" style="max-width:180px;">
+        <div class="samplestatus" id="sampleStatus"></div>
+        <div class="settingsstatus" id="settingsStatus"></div>
+      </div>
+    </section>
+
+    <!-- ============ MY VIDEOS ============ -->
+    <section class="panel" id="panel-videos">
+      <span class="step-tag">Cloud · Supabase "YT Automation"</span>
+      <h2>My saved videos</h2>
+      <p class="lede">Every video you save lives here. Load one to continue exactly where you left off —
+      details, script, and step progress included. You can work on several videos at the same time by
+      saving one and loading another.</p>
+      <div class="card">
+        <div class="vl-head"><h3>Saved videos</h3><button class="btn secondary" id="refreshVideosBtn">↻ Refresh</button></div>
+        <div class="videolist" id="videoList"><div class="emptylist">Loading…</div></div>
+      </div>
+      <div class="note">Saving is keyed by the <b>video title</b>: clicking <b>☁ Save video</b> with an
+      existing title updates that entry; a new title creates a new one. Sample scripts and duration are
+      global (Setup) and shared by all videos.</div>
+    </section>
+
+    <!-- ============ STEP 1 ============ -->
+    <section class="panel" id="panel-s1">
+      <span class="step-tag">Step 1 · AI chat</span>
+      <h2>Video details → voice-over script prompt</h2>
+      <p class="lede">Fill in the new video's details. The app builds the complete, ready-to-paste prompt
+      (with your sample scripts and target duration already inside).</p>
+
+      <div class="card">
+        <label for="vidTitle">New video title / idea</label>
+        <input type="text" id="vidTitle" placeholder="e.g. Why you never have enough time (and how to fix it)">
+        <label for="keyPoints">Key points to cover — one per line</label>
+        <textarea id="keyPoints" rows="6" placeholder="The 4 boxes of time&#10;Why box 1 keeps you stuck&#10;The killer: box 4&#10;How to move into box 2&#10;..."></textarea>
+        <div class="settingsstatus" id="durationNote"></div>
+      </div>
+
+      <div class="card">
+        <h3>Your generated prompt</h3>
+        <textarea id="prompt1Out" class="promptout" rows="14" readonly></textarea>
+        <button class="btn" id="copyPrompt1">📋 Copy full prompt</button>
+      </div>
+
+      <div class="card">
+        <h3>What to do with it</h3>
+        <ol class="instructions">
+          <li>Paste the prompt into <b>Claude / ChatGPT / any AI chat</b>.</li>
+          <li>It goes straight to building the file (no script text printed in the chat) and should hand you a
+              downloadable <span class="filename">voice-over-script.txt</span> file directly — save it into the
+              <b>video's folder</b> (the folder with <span class="filename">build_timeline.py</span>). If your AI
+              tool can't create files, it falls back to printing the script as chat text — copy that instead.</li>
+          <li>Open the downloaded file to read it — ask for changes in the same chat and re-download until you like it.</li>
+        </ol>
+        <div class="note warn"><b>New video = new folder:</b> copy <span class="filename">build_timeline.py</span>,
+        <span class="filename">make_flow_prompts.py</span>, <span class="filename">Rename-Scenes.ps1</span> into it and
+        create an empty <span class="filename">Scene</span> folder (see the run sheet in Reference).</div>
+      </div>
+      <div class="stepfoot">
+        <button class="btn donebtn" data-done="s1">✓ Mark step 1 done</button>
+      </div>
+    </section>
+
+    <!-- ============ STEP 2 ============ -->
+    <section class="panel" id="panel-s2">
+      <span class="step-tag">Step 2 · AI chat</span>
+      <h2>Voice-over script → scene prompts</h2>
+      <p class="lede">Paste the text of your finished <span class="filename">voice-over-script.txt</span> below.
+      Every <b>two consecutive breath-lines become one image scene</b>, roughly halving the number of images
+      you need to generate. The app checks it and builds the full scene-prompts prompt for you.</p>
+
+      <div class="card">
+        <label for="voScript">Contents of voice-over-script.txt</label>
+        <textarea id="voScript" class="mono" rows="10" placeholder="Paste the whole script here — one breath per line..."></textarea>
+        <div class="stats" id="scriptStats"></div>
+        <div class="longlines" id="longLines"></div>
+      </div>
+
+      <div class="card">
+        <h3>Your generated prompt</h3>
+        <textarea id="prompt2Out" class="promptout" rows="14" readonly></textarea>
+        <button class="btn" id="copyPrompt2">📋 Copy full prompt</button>
+      </div>
+
+      <div class="card">
+        <h3>What to do with it</h3>
+        <ol class="instructions">
+          <li>Paste the prompt into the AI chat.</li>
+          <li>It first answers <span class="filename">TOTAL SCENES: N</span> — check N matches the <b>scenes / images</b>
+              count shown above (about half your line count).</li>
+          <li>It then goes straight to building the file (no scene list printed in the chat) — for a long script this
+              may take a while to finish.</li>
+          <li>It should hand you a downloadable <span class="filename">original-scenes-prompts.txt</span>
+              file directly — save it into the video's folder. If your AI tool can't create files, it falls back to
+              printing all scenes as chat text instead — copy that and save it under that name.</li>
+        </ol>
+      </div>
+      <div class="stepfoot">
+        <button class="btn donebtn" data-done="s2">✓ Mark step 2 done</button>
+      </div>
+    </section>
+
+    <!-- ============ STEP 3 ============ -->
+    <section class="panel" id="panel-s3">
+      <span class="step-tag">Step 3 · Command</span>
+      <h2>Make the Flow prompt list</h2>
+      <p class="lede">One command turns <span class="filename">original-scenes-prompts.txt</span> into the
+      Flow-ready prompt list — and verifies every scene sentence against your script, line by line.</p>
+      <div class="card">
+        <h3>Run in the video's folder</h3>
+        <div class="cmd"><code>py make_flow_prompts.py</code><button data-copy="py make_flow_prompts.py">Copy</button></div>
+        <p style="color:var(--muted); font-size:13.5px; margin-top:8px;">Open a terminal in the video's folder
+        (in File Explorer: click the address bar, type <b>cmd</b>, press Enter) and paste the command.</p>
+      </div>
+      <div class="card">
+        <h3>What you get</h3>
+        <ol class="instructions">
+          <li><span class="filename">flow-ai-scene-prompts.txt</span> — one image prompt per scene, separated by blank lines.</li>
+          <li>A verification result: <b>"Verified: all N scene sentences match voice-over-script.txt"</b> means you're safe.</li>
+        </ol>
+        <div class="note warn"><b>If it prints WARNINGS</b> — the AI merged, skipped or reworded a line.
+        Fix those scenes in <span class="filename">original-scenes-prompts.txt</span> (or ask the AI chat to redo them)
+        and run the command again <b>before</b> generating any images.</div>
+      </div>
+      <div class="stepfoot">
+        <button class="btn donebtn" data-done="s3">✓ Mark step 3 done</button>
+      </div>
+    </section>
+
+    <!-- ============ STEP 4 ============ -->
+    <section class="panel" id="panel-s4">
+      <span class="step-tag">Step 4 · Reminder — your bulk extension</span>
+      <h2>Generate the images on Flow AI</h2>
+      <p class="lede">You already have this covered with your third-party bulk extension — this step is just
+      the checklist so nothing is missed.</p>
+      <div class="card">
+        <ol class="instructions">
+          <li>Open <b>Flow AI</b> and load your <b>character reference image</b> (every prompt expects it).</li>
+          <li>Feed your bulk extension the prompts from <span class="filename">flow-ai-scene-prompts.txt</span> — <b>keep the order</b>.</li>
+          <li>Generate, then download <b>all</b> images into the <span class="filename">Scene</span> folder.</li>
+        </ol>
+        <div class="note">Downloaded names like <span class="filename">1.png</span>, <span class="filename">1 (1).jpg</span>,
+        <span class="filename">2.webp</span> are perfect — the renamer groups them by that leading number.
+        Multiple variants of the same scene are fine (they become A / B / C).</div>
+      </div>
+      <div class="stepfoot">
+        <button class="btn donebtn" data-done="s4">✓ Mark step 4 done</button>
+      </div>
+    </section>
+
+    <!-- ============ STEP 5 ============ -->
+    <section class="panel" id="panel-s5">
+      <span class="step-tag">Step 5 · Command</span>
+      <h2>Rename the images</h2>
+      <p class="lede">The renamer reads the scene sentences from <span class="filename">original-scenes-prompts.txt</span>
+      and renames every image to <span class="filename">001 - sentence.jpg</span> style.</p>
+      <div class="card">
+        <h3>Run in the video's folder</h3>
+        <div class="cmd"><code>powershell -ExecutionPolicy Bypass -File "Rename-Scenes.ps1"</code><button
+          data-copy='powershell -ExecutionPolicy Bypass -File "Rename-Scenes.ps1"'>Copy</button></div>
+        <p style="color:var(--muted); font-size:13.5px;">Or simply right-click <span class="filename">Rename-Scenes.ps1</span>
+        → <b>Run with PowerShell</b>.</p>
+        <div class="note">It prints <b>Scenes / Groups / Images</b> counts — they should match your scene count.
+        If it warns that counts differ, a scene is missing an image (or has a stray extra) — fix that before continuing.</div>
+      </div>
+      <div class="stepfoot">
+        <button class="btn donebtn" data-done="s5">✓ Mark step 5 done</button>
+      </div>
+    </section>
+
+    <!-- ============ STEP 6 ============ -->
+    <section class="panel" id="panel-s6">
+      <span class="step-tag">Step 6 · Recording</span>
+      <h2>Record the voice-over</h2>
+      <p class="lede">Read <span class="filename">voice-over-script.txt</span> out loud — it's formatted as
+      one breath per line, so pause naturally at each line break.</p>
+      <div class="card">
+        <ol class="instructions">
+          <li>Record at your natural pace — the timeline adapts to <b>your</b> timing automatically, so don't rush.</li>
+          <li>Small stumbles are fine if you re-read the line cleanly; big retakes are better cut from the audio before the next step.</li>
+          <li>(Optional) save the final audio as <span class="filename">narration.wav</span> in the video's folder —
+              then Step 8 can place it in the Premiere sequence automatically.</li>
+        </ol>
+      </div>
+      <div class="stepfoot">
+        <button class="btn donebtn" data-done="s6">✓ Mark step 6 done</button>
+      </div>
+    </section>
+
+    <!-- ============ STEP 7 ============ -->
+    <section class="panel" id="panel-s7">
+      <span class="step-tag">Step 7 · Reminder — Cutback extension</span>
+      <h2>Create Transcript.srt</h2>
+      <p class="lede">You already do this with the Cutback extension — just the checklist:</p>
+      <div class="card">
+        <ol class="instructions">
+          <li>Run your recorded audio through <b>Cutback</b> to get the subtitles.</li>
+          <li>Export/save as <span class="filename">Transcript.srt</span> in the <b>video's folder</b>.</li>
+        </ol>
+        <div class="note">Short subtitle lines, ALL-CAPS, digits instead of words — all fine.
+        The timeline builder normalizes everything ("8" matches "eight", etc.).</div>
+      </div>
+      <div class="stepfoot">
+        <button class="btn donebtn" data-done="s7">✓ Mark step 7 done</button>
+      </div>
+    </section>
+
+    <!-- ============ STEP 8 ============ -->
+    <section class="panel" id="panel-s8">
+      <span class="step-tag">Step 8 · Command</span>
+      <h2>Build the timeline</h2>
+      <p class="lede">One command matches every image to the exact seconds it is spoken, adds the
+      zoom/slide motion and the 5-frame dissolves, and writes <span class="filename">timeline.xml</span>.</p>
+      <div class="card">
+        <h3>Run in the video's folder</h3>
+        <div class="checkline"><input type="checkbox" id="withAudio">
+          <span>I saved my narration as <span class="filename">narration.wav</span> — also place it on the audio track</span></div>
+        <div class="cmd"><code id="buildCmd">py build_timeline.py --scale 72</code><button id="copyBuildCmd">Copy</button></div>
+      </div>
+      <div class="card">
+        <h3>Check the result</h3>
+        <ol class="instructions">
+          <li>The console prints every scene's match — look at the summary line: similarity around <b>0.9+</b> is great.</li>
+          <li>Look for <b>LOW CONFIDENCE</b> flags in the console output —
+              those few scenes (if any) are the only cuts worth eyeballing in Premiere.</li>
+        </ol>
+        <div class="note">Motion is included automatically: slow zoom in/out on every image, a slide every
+        5–8 clips (zoom direction flips after each slide), and a 5-frame cross dissolve at every cut —
+        none at the very start of image 1.</div>
+      </div>
+      <div class="stepfoot">
+        <button class="btn donebtn" data-done="s8">✓ Mark step 8 done</button>
+      </div>
+    </section>
+
+    <!-- ============ STEP 9 ============ -->
+    <section class="panel" id="panel-s9">
+      <span class="step-tag">Step 9 · Premiere Pro</span>
+      <h2>Import into Premiere</h2>
+      <p class="lede">The last step — everything arrives already assembled.</p>
+      <div class="card">
+        <ol class="instructions">
+          <li>In Premiere: <b>File → Import</b> → pick <span class="filename">timeline.xml</span>.</li>
+          <li>Open the imported sequence — images, timing, motion and transitions are already in place.</li>
+          <li>If you didn't use <span class="filename">--audio</span>, drop your narration on A1 at 0:00.</li>
+          <li>Play it through once; nudge any LOW CONFIDENCE cut from the build output if needed.</li>
+        </ol>
+        <div class="note">🎉 That's the whole pipeline. Hit <b>☁ Save video</b> one last time, then
+        <b>Start a new video</b> in the sidebar when you begin the next one.</div>
+      </div>
+      <div class="stepfoot">
+        <button class="btn donebtn" data-done="s9">✓ Mark step 9 done</button>
+      </div>
+    </section>
+
+    <!-- ============ REFERENCE ============ -->
+    <section class="panel" id="panel-ref">
+      <span class="step-tag">Reference</span>
+      <h2>Files &amp; commands cheat-sheet</h2>
+      <p class="lede">Everything the pipeline reads and writes, in order.</p>
+      <div class="card">
+        <h3>Quick run sheet — new video, start to finish</h3>
+        <ol class="instructions" start="0">
+          <li>New folder → copy <span class="filename">build_timeline.py</span>, <span class="filename">make_flow_prompts.py</span>, <span class="filename">Rename-Scenes.ps1</span> → create an empty <span class="filename">Scene</span> folder.</li>
+          <li>App Step 1: title + key points → copy prompt → AI → save as <span class="filename">voice-over-script.txt</span>.</li>
+          <li>App Step 2: paste the script → copy prompt → AI, reply <b>continue</b> → save all output as <span class="filename">original-scenes-prompts.txt</span>.</li>
+          <li>Run <span class="filename">py make_flow_prompts.py</span> → must print <b>Verified</b>.</li>
+          <li>Flow AI: character reference + bulk extension with <span class="filename">flow-ai-scene-prompts.txt</span> → download all images into <span class="filename">Scene</span>.</li>
+          <li>Run <span class="filename">Rename-Scenes.ps1</span> → counts must match.</li>
+          <li>Record the voice-over reading <span class="filename">voice-over-script.txt</span> (optional: save <span class="filename">narration.wav</span>).</li>
+          <li>Cutback → save as <span class="filename">Transcript.srt</span>.</li>
+          <li>Run <span class="filename">py build_timeline.py --scale 72</span> (add <span class="filename">--audio narration.wav</span> if saved) → check the console for <b>LOW CONFIDENCE</b>.</li>
+          <li>Premiere → File → Import → <span class="filename">timeline.xml</span>. 🎉</li>
+        </ol>
+      </div>
+      <div class="card">
+        <table class="ref">
+          <tr><td><span class="filename">voice-over-script.txt</span></td><td>Your script, one breath per line. You read this when recording. Every two consecutive lines become one image scene. <i>(Step 1)</i></td></tr>
+          <tr><td><span class="filename">original-scenes-prompts.txt</span></td><td>SCENE N + exact sentence + image prompt. Single source of truth for images, renaming and matching. <i>(Step 2)</i></td></tr>
+          <tr><td><span class="filename">flow-ai-scene-prompts.txt</span></td><td>Prompts only, blank-line separated — feed to Flow. Auto-generated. <i>(Step 3)</i></td></tr>
+          <tr><td><span class="filename">Scene\</span></td><td>The images. Downloaded raw (1.png, 1 (1).jpg…), then renamed to "001 - sentence.jpg". <i>(Steps 4–5)</i></td></tr>
+          <tr><td><span class="filename">Transcript.srt</span></td><td>Subtitles of your recorded voice (Cutback). <i>(Step 7)</i></td></tr>
+          <tr><td><span class="filename">timeline.xml</span></td><td>The finished Premiere sequence. Import via File → Import. <i>(Step 8)</i></td></tr>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</div>
+<div id="toast">Copied ✓</div>
+<script src="script.js"></script>
+</body>
+</html>
