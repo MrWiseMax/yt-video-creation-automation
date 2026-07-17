@@ -101,9 +101,12 @@ function buildPrompt2() {
 "",
 "--- CHARACTER & STYLE (applies to every prompt) ---",
 "- Every prompt starts with: \"Use the character from the uploaded image reference.\" Then describe this scene.",
-"- In each prompt describe: the character's action, pose and expression that visually acts out BOTH lines of the scene together as one moment; the setting; 1-2 concrete environment details; the lighting; and the overall energy in a short closing phrase.",
-"- Realistic, grounded, relatable body language - never exaggerated or cartoonish. No white background, no glow.",
-"- Keep the location consistent across consecutive scenes that clearly happen in the same place (same office, same living room, same street), and only change setting when the narration moves on.",
+"- In each prompt describe: the character's action, pose and expression that visually acts out BOTH lines of the scene together as one moment; the setting; 1-2 concrete environment details; and the overall energy in a short closing phrase.",
+"- Grounded, relatable body language - never exaggerated or cartoonish. Never describe the character or the scene as \"realistic\" or photorealistic, and don't write toward photoreal rendering - keep the established illustrated character look. No white background, no glow.",
+"- NEVER describe lighting mood or quality, in any form. This is banned: \"soft afternoon light\", \"warm late-afternoon lighting\", \"warm golden light\", \"soft golden light\", \"warm morning window light\", \"light from a window\", \"sunlit kitchen\", or any other \"[mood] light/lighting\" or \"sunlit ___\" phrase. Do not swap in a different lighting descriptor either - just leave lighting out completely. Rely on well-balanced, evenly colored visuals and let the action, pose and setting alone make the two lines' meaning clear.",
+"- Favor environment variety scene-to-scene so the setting actually matches what THIS scene's two lines are about, instead of defaulting to the same room/background out of habit. Only keep the exact same setting as the previous scene when the two lines are clearly a continuous moment in that same place; otherwise transition to a new, ordinary, everyday location (a different room, indoors vs outdoors, a different spot in the same space) that fits the new lines.",
+"- Vary the character's relationship to the camera across the video - rotate through all three of these rather than defaulting to one: (a) face visible, NOT looking at the camera; (b) face visible, looking directly at the camera; (c) character seen from behind or the side so the face is not visible, not looking at the camera. Pick whichever fits each scene's meaning.",
+"- When it fits the scene, you may add one or two side/background characters doing something plausible in the environment. Give them the same general body build as the main character but explicitly NO hat and NO scarf, so the main character stays visually unique in every frame.",
 "- 40-80 words per prompt.",
 "",
 "--- FILE FORMAT (exact, for every scene - this is the content of the file, not your chat reply) ---",
@@ -128,13 +131,13 @@ function buildPrompt2() {
 "",
 "\"For years, I tried to fix my habits. I would wake up super motivated.\"",
 "",
-"Use the character from the uploaded image reference. The character stands in front of a bathroom mirror early in the morning, fists lightly clenched at chest height, a determined, hopeful expression - the look of someone starting fresh. Bright clean morning light. Simple tidy bathroom, a sticky-note goal stuck to the mirror edge. Motivated, energetic energy.",
+"Use the character from the uploaded image reference. The character stands in front of a bathroom mirror, fists lightly clenched at chest height, face visible but eyes on their own reflection rather than the camera, a determined, hopeful expression - the look of someone starting fresh. Simple tidy bathroom, a sticky-note goal stuck to the mirror edge, everything evenly colored. Motivated, energetic energy.",
 "",
 "SCENE 2",
 "",
 "\"Then three days later, back to zero. And I always blamed myself for it.\"",
 "",
-"Use the character from the uploaded image reference. The character sits slumped on the edge of the same bed, shoulders low, staring blankly at the floor, the sticky note now crumpled in one hand. Dim flat daylight. Same simple bedroom, now slightly messier. Deflated, self-critical energy.",
+"Use the character from the uploaded image reference. The character sits slumped on the edge of a bed in a different, messier room, back turned to the camera so the face isn't visible, shoulders low, the sticky note now crumpled in one hand. Deflated, self-critical energy.",
 "",
 "--- WHAT TO OUTPUT (read carefully) ---",
 "- First, count the non-empty script lines, work out how many two-line scenes that makes (round up if the line count is odd), and output exactly one line in the chat:   TOTAL SCENES: <n>",
@@ -332,8 +335,7 @@ function refresh() {
     + " minutes — change it in Setup.";
   $("prompt1Out").value = buildPrompt1();
   $("prompt2Out").value = buildPrompt2();
-  $("buildCmd").textContent = "py build_timeline.py --scale 72"
-    + ($("withAudio").checked ? " --audio narration.wav" : "");
+  $("buildCmd").textContent = "py build_timeline.py --scale 72";
   renderStats();
 
   document.querySelectorAll(".donebtn").forEach(b => {
@@ -402,7 +404,6 @@ function bindEvents() {
     });
   });
 
-  $("withAudio").addEventListener("change", refresh);
   $("copyPrompt1").addEventListener("click", () => copyText(buildPrompt1()));
   $("copyPrompt2").addEventListener("click", () => copyText(buildPrompt2()));
   $("copyBuildCmd").addEventListener("click", () => copyText($("buildCmd").textContent));
