@@ -31,11 +31,10 @@
     <div class="navstep" data-step="s2"><span class="dot">2</span><span>Script → scene prompts</span></div>
     <div class="navstep" data-step="s3"><span class="dot">3</span><span>Make the Flow prompt list</span></div>
     <div class="navstep" data-step="s4"><span class="dot">4</span><span>Generate images on Flow</span></div>
-    <div class="navstep" data-step="s5"><span class="dot">5</span><span>Rename the images</span></div>
-    <div class="navstep" data-step="s6"><span class="dot">6</span><span>Record the voice-over</span></div>
-    <div class="navstep" data-step="s7"><span class="dot">7</span><span>Create Transcript.srt</span></div>
-    <div class="navstep" data-step="s8"><span class="dot">8</span><span>Build the timeline</span></div>
-    <div class="navstep" data-step="s9"><span class="dot">9</span><span>Import into Premiere</span></div>
+    <div class="navstep" data-step="s5"><span class="dot">5</span><span>Record the voice-over</span></div>
+    <div class="navstep" data-step="s6"><span class="dot">6</span><span>Create Transcript.srt</span></div>
+    <div class="navstep" data-step="s7"><span class="dot">7</span><span>Build the timeline</span></div>
+    <div class="navstep" data-step="s8"><span class="dot">8</span><span>Import into Premiere</span></div>
     <div class="nav-sep"></div>
     <div class="navstep" data-step="ref"><span class="dot">📖</span><span>Reference — files &amp; commands</span></div>
     <button class="newvideo-btn" id="newVideoBtn">🔄 Start a new video (reset steps)</button>
@@ -108,12 +107,11 @@
           <li>Paste the prompt into <b>Claude / ChatGPT / any AI chat</b>.</li>
           <li>It goes straight to building the file (no script text printed in the chat) and should hand you a
               downloadable <span class="filename">voice-over-script.txt</span> file directly — save it into the
-              <b>video's folder</b> (the folder with <span class="filename">build_timeline.py</span>). If your AI
+              <b>video's folder</b> (the folder with <span class="filename">pipeline.py</span>). If your AI
               tool can't create files, it falls back to printing the script as chat text — copy that instead.</li>
           <li>Open the downloaded file to read it — ask for changes in the same chat and re-download until you like it.</li>
         </ol>
-        <div class="note warn"><b>New video = new folder:</b> copy <span class="filename">build_timeline.py</span>,
-        <span class="filename">make_flow_prompts.py</span>, <span class="filename">Rename-Scenes.ps1</span> into it and
+        <div class="note warn"><b>New video = new folder:</b> copy <span class="filename">pipeline.py</span> into it and
         create an empty <span class="filename">Scene</span> folder (see the run sheet in Reference).</div>
       </div>
       <div class="stepfoot">
@@ -168,14 +166,16 @@
       Flow-ready prompt list — and verifies every scene sentence against your script, line by line.</p>
       <div class="card">
         <h3>Run in the video's folder</h3>
-        <div class="cmd"><code>py make_flow_prompts.py</code><button data-copy="py make_flow_prompts.py">Copy</button></div>
+        <div class="cmd"><code>py pipeline.py prompts</code><button data-copy="py pipeline.py prompts">Copy</button></div>
         <p style="color:var(--muted); font-size:13.5px; margin-top:8px;">Open a terminal in the video's folder
         (in File Explorer: click the address bar, type <b>cmd</b>, press Enter) and paste the command.</p>
       </div>
       <div class="card">
         <h3>What you get</h3>
         <ol class="instructions">
-          <li><span class="filename">flow-ai-scene-prompts.txt</span> — one image prompt per scene, separated by blank lines.</li>
+          <li><span class="filename">flow-ai-scene-prompts.txt</span> — one image prompt per scene, each numbered
+              <span class="filename">001:</span>, <span class="filename">002:</span> … so you can search the file
+              for one scene when you need to regenerate a single image.</li>
           <li>A verification result: <b>"Verified: all N scene sentences match voice-over-script.txt"</b> means you're safe.</li>
         </ol>
         <div class="note warn"><b>If it prints WARNINGS</b> — the AI merged, skipped or reworded a line.
@@ -199,9 +199,12 @@
           <li>Feed your bulk extension the prompts from <span class="filename">flow-ai-scene-prompts.txt</span> — <b>keep the order</b>.</li>
           <li>Generate, then download <b>all</b> images into the <span class="filename">Scene</span> folder.</li>
         </ol>
-        <div class="note">Downloaded names like <span class="filename">1.png</span>, <span class="filename">1 (1).jpg</span>,
-        <span class="filename">2.webp</span> are perfect — the renamer groups them by that leading number.
-        Multiple variants of the same scene are fine (they become A / B / C).</div>
+        <div class="note">Leave the downloaded names exactly as they are — <span class="filename">1.png</span>,
+        <span class="filename">1 (1).jpg</span>, <span class="filename">2.webp</span> are perfect.
+        Step 7 renames them for you using that leading number.</div>
+        <div class="note warn"><b>The one thing to do here:</b> keep only <b>one image per scene</b>.
+        If Flow gave you several variants of the same scene, delete the ones you don't want —
+        otherwise the build flags them as duplicate scene numbers.</div>
       </div>
       <div class="stepfoot">
         <button class="btn donebtn" data-done="s4">✓ Mark step 4 done</button>
@@ -210,18 +213,15 @@
 
     <!-- ============ STEP 5 ============ -->
     <section class="panel" id="panel-s5">
-      <span class="step-tag">Step 5 · Command</span>
-      <h2>Rename the images</h2>
-      <p class="lede">The renamer reads the scene sentences from <span class="filename">original-scenes-prompts.txt</span>
-      and renames every image to <span class="filename">001 - sentence.jpg</span> style.</p>
+      <span class="step-tag">Step 5 · Recording</span>
+      <h2>Record the voice-over</h2>
+      <p class="lede">Read <span class="filename">voice-over-script.txt</span> out loud — it's formatted as
+      one breath per line, so pause naturally at each line break.</p>
       <div class="card">
-        <h3>Run in the video's folder</h3>
-        <div class="cmd"><code>powershell -ExecutionPolicy Bypass -File "Rename-Scenes.ps1"</code><button
-          data-copy='powershell -ExecutionPolicy Bypass -File "Rename-Scenes.ps1"'>Copy</button></div>
-        <p style="color:var(--muted); font-size:13.5px;">Or simply right-click <span class="filename">Rename-Scenes.ps1</span>
-        → <b>Run with PowerShell</b>.</p>
-        <div class="note">It prints <b>Scenes / Groups / Images</b> counts — they should match your scene count.
-        If it warns that counts differ, a scene is missing an image (or has a stray extra) — fix that before continuing.</div>
+        <ol class="instructions">
+          <li>Record at your natural pace — the timeline adapts to <b>your</b> timing automatically, so don't rush.</li>
+          <li>Small stumbles are fine if you re-read the line cleanly; big retakes are better cut from the audio before the next step.</li>
+        </ol>
       </div>
       <div class="stepfoot">
         <button class="btn donebtn" data-done="s5">✓ Mark step 5 done</button>
@@ -230,26 +230,7 @@
 
     <!-- ============ STEP 6 ============ -->
     <section class="panel" id="panel-s6">
-      <span class="step-tag">Step 6 · Recording</span>
-      <h2>Record the voice-over</h2>
-      <p class="lede">Read <span class="filename">voice-over-script.txt</span> out loud — it's formatted as
-      one breath per line, so pause naturally at each line break.</p>
-      <div class="card">
-        <ol class="instructions">
-          <li>Record at your natural pace — the timeline adapts to <b>your</b> timing automatically, so don't rush.</li>
-          <li>Small stumbles are fine if you re-read the line cleanly; big retakes are better cut from the audio before the next step.</li>
-          <li>(Optional) save the final audio as <span class="filename">narration.wav</span> in the video's folder —
-              then Step 8 can place it in the Premiere sequence automatically.</li>
-        </ol>
-      </div>
-      <div class="stepfoot">
-        <button class="btn donebtn" data-done="s6">✓ Mark step 6 done</button>
-      </div>
-    </section>
-
-    <!-- ============ STEP 7 ============ -->
-    <section class="panel" id="panel-s7">
-      <span class="step-tag">Step 7 · Reminder — Cutback extension</span>
+      <span class="step-tag">Step 6 · Reminder — Cutback extension</span>
       <h2>Create Transcript.srt</h2>
       <p class="lede">You already do this with the Cutback extension — just the checklist:</p>
       <div class="card">
@@ -261,19 +242,22 @@
         The timeline builder normalizes everything ("8" matches "eight", etc.).</div>
       </div>
       <div class="stepfoot">
-        <button class="btn donebtn" data-done="s7">✓ Mark step 7 done</button>
+        <button class="btn donebtn" data-done="s6">✓ Mark step 6 done</button>
       </div>
     </section>
 
-    <!-- ============ STEP 8 ============ -->
-    <section class="panel" id="panel-s8">
-      <span class="step-tag">Step 8 · Command</span>
+    <!-- ============ STEP 7 ============ -->
+    <section class="panel" id="panel-s7">
+      <span class="step-tag">Step 7 · Command</span>
       <h2>Build the timeline</h2>
-      <p class="lede">One command matches every image to the exact seconds it is spoken, adds the
-      zoom/slide motion and the 5-frame dissolves, and writes <span class="filename">timeline.xml</span>.</p>
+      <p class="lede">One command renames your images, matches every one to the exact seconds it is spoken,
+      adds the zoom/slide motion and the 5-frame dissolves, and writes <span class="filename">timeline.xml</span>.</p>
       <div class="card">
         <h3>Run in the video's folder</h3>
-        <div class="cmd"><code id="buildCmd">py build_timeline.py --scale 72</code><button id="copyBuildCmd">Copy</button></div>
+        <div class="cmd"><code id="buildCmd">py pipeline.py build --scale 72</code><button id="copyBuildCmd">Copy</button></div>
+        <div class="note">This also renames the Flow downloads to <span class="filename">001 - sentence.jpg</span> style
+        first — you'll see a <b>Rename:</b> line at the top of the output. It's safe to re-run any time
+        (already-correct names are left alone), so swap an image and rebuild whenever you like.</div>
       </div>
       <div class="card">
         <h3>Check the result</h3>
@@ -287,27 +271,27 @@
         none at the very start of image 1.</div>
       </div>
       <div class="stepfoot">
-        <button class="btn donebtn" data-done="s8">✓ Mark step 8 done</button>
+        <button class="btn donebtn" data-done="s7">✓ Mark step 7 done</button>
       </div>
     </section>
 
-    <!-- ============ STEP 9 ============ -->
-    <section class="panel" id="panel-s9">
-      <span class="step-tag">Step 9 · Premiere Pro</span>
+    <!-- ============ STEP 8 ============ -->
+    <section class="panel" id="panel-s8">
+      <span class="step-tag">Step 8 · Premiere Pro</span>
       <h2>Import into Premiere</h2>
       <p class="lede">The last step — everything arrives already assembled.</p>
       <div class="card">
         <ol class="instructions">
           <li>In Premiere: <b>File → Import</b> → pick <span class="filename">timeline.xml</span>.</li>
           <li>Open the imported sequence — images, timing, motion and transitions are already in place.</li>
-          <li>If you didn't use <span class="filename">--audio</span>, drop your narration on A1 at 0:00.</li>
+          <li>Drop your narration on A1 at 0:00.</li>
           <li>Play it through once; nudge any LOW CONFIDENCE cut from the build output if needed.</li>
         </ol>
         <div class="note">🎉 That's the whole pipeline. Hit <b>☁ Save video</b> one last time, then
         <b>Start a new video</b> in the sidebar when you begin the next one.</div>
       </div>
       <div class="stepfoot">
-        <button class="btn donebtn" data-done="s9">✓ Mark step 9 done</button>
+        <button class="btn donebtn" data-done="s8">✓ Mark step 8 done</button>
       </div>
     </section>
 
@@ -319,15 +303,14 @@
       <div class="card">
         <h3>Quick run sheet — new video, start to finish</h3>
         <ol class="instructions" start="0">
-          <li>New folder → copy <span class="filename">build_timeline.py</span>, <span class="filename">make_flow_prompts.py</span>, <span class="filename">Rename-Scenes.ps1</span> → create an empty <span class="filename">Scene</span> folder.</li>
+          <li>New folder → copy <span class="filename">pipeline.py</span> into it → create an empty <span class="filename">Scene</span> folder.</li>
           <li>App Step 1: title + key points → copy prompt → AI → save as <span class="filename">voice-over-script.txt</span>.</li>
-          <li>App Step 2: paste the script → copy prompt → AI, reply <b>continue</b> → save all output as <span class="filename">original-scenes-prompts.txt</span>.</li>
-          <li>Run <span class="filename">py make_flow_prompts.py</span> → must print <b>Verified</b>.</li>
-          <li>Flow AI: character reference + bulk extension with <span class="filename">flow-ai-scene-prompts.txt</span> → download all images into <span class="filename">Scene</span>.</li>
-          <li>Run <span class="filename">Rename-Scenes.ps1</span> → counts must match.</li>
-          <li>Record the voice-over reading <span class="filename">voice-over-script.txt</span> (optional: save <span class="filename">narration.wav</span>).</li>
+          <li>App Step 2: paste the script → copy prompt → AI → save all output as <span class="filename">original-scenes-prompts.txt</span>.</li>
+          <li>Run <span class="filename">py pipeline.py prompts</span> → must print <b>Verified</b>.</li>
+          <li>Flow AI: character reference + bulk extension with <span class="filename">flow-ai-scene-prompts.txt</span> → download all images into <span class="filename">Scene</span>, then keep only one image per scene.</li>
+          <li>Record the voice-over reading <span class="filename">voice-over-script.txt</span>.</li>
           <li>Cutback → save as <span class="filename">Transcript.srt</span>.</li>
-          <li>Run <span class="filename">py build_timeline.py --scale 72</span> (add <span class="filename">--audio narration.wav</span> if saved) → check the console for <b>LOW CONFIDENCE</b>.</li>
+          <li>Run <span class="filename">py pipeline.py build --scale 72</span> → renames the images, then check the console for <b>LOW CONFIDENCE</b>.</li>
           <li>Premiere → File → Import → <span class="filename">timeline.xml</span>. 🎉</li>
         </ol>
       </div>
@@ -335,10 +318,11 @@
         <table class="ref">
           <tr><td><span class="filename">voice-over-script.txt</span></td><td>Your script, one breath per line. You read this when recording. Every two consecutive lines become one image scene. <i>(Step 1)</i></td></tr>
           <tr><td><span class="filename">original-scenes-prompts.txt</span></td><td>SCENE N + exact sentence + image prompt. Single source of truth for images, renaming and matching. <i>(Step 2)</i></td></tr>
-          <tr><td><span class="filename">flow-ai-scene-prompts.txt</span></td><td>Prompts only, blank-line separated — feed to Flow. Auto-generated. <i>(Step 3)</i></td></tr>
-          <tr><td><span class="filename">Scene\</span></td><td>The images. Downloaded raw (1.png, 1 (1).jpg…), then renamed to "001 - sentence.jpg". <i>(Steps 4–5)</i></td></tr>
-          <tr><td><span class="filename">Transcript.srt</span></td><td>Subtitles of your recorded voice (Cutback). <i>(Step 7)</i></td></tr>
-          <tr><td><span class="filename">timeline.xml</span></td><td>The finished Premiere sequence. Import via File → Import. <i>(Step 8)</i></td></tr>
+          <tr><td><span class="filename">flow-ai-scene-prompts.txt</span></td><td>Prompts only, numbered 001:, 002: … and blank-line separated — feed to Flow. Auto-generated. <i>(Step 3)</i></td></tr>
+          <tr><td><span class="filename">Scene\</span></td><td>The images. Downloaded raw (1.png, 1 (1).jpg…), renamed to "001 - sentence.jpg" by the build. <i>(Steps 4, 7)</i></td></tr>
+          <tr><td><span class="filename">Transcript.srt</span></td><td>Subtitles of your recorded voice (Cutback). <i>(Step 6)</i></td></tr>
+          <tr><td><span class="filename">timeline.xml</span></td><td>The finished Premiere sequence. Import via File → Import. <i>(Step 7)</i></td></tr>
+          <tr><td><span class="filename">pipeline.py</span></td><td>The only script you copy into a new video's folder. <span class="filename">prompts</span> before Flow, <span class="filename">build</span> after recording. <i>(Steps 3, 7)</i></td></tr>
         </table>
       </div>
     </section>

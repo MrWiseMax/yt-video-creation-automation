@@ -300,7 +300,7 @@ async function deleteVideo(id, title) {
 }
 
 /* ================= rendering ================= */
-const STEP_IDS = ["s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9"];
+const STEP_IDS = ["s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8"];
 
 function refresh() {
   document.querySelectorAll(".navstep").forEach(el => {
@@ -314,8 +314,8 @@ function refresh() {
   });
 
   const n = STEP_IDS.filter(id => video.done[id]).length;
-  $("progressFill").style.width = (n / 9 * 100) + "%";
-  $("progressLabel").textContent = n + " / 9 steps done";
+  $("progressFill").style.width = (n / STEP_IDS.length * 100) + "%";
+  $("progressLabel").textContent = n + " / " + STEP_IDS.length + " steps done";
 
   $("workLabel").innerHTML = "<span>Working on:</span> " + (esc(video.title.trim()) || "Untitled video");
   const saveBtn = $("saveVideoBtn");
@@ -335,7 +335,7 @@ function refresh() {
     + " minutes — change it in Setup.";
   $("prompt1Out").value = buildPrompt1();
   $("prompt2Out").value = buildPrompt2();
-  $("buildCmd").textContent = "py build_timeline.py --scale 72";
+  $("buildCmd").textContent = "py pipeline.py build --scale 72";
   renderStats();
 
   document.querySelectorAll(".donebtn").forEach(b => {
