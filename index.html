@@ -7,7 +7,31 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="app">
+<div class="toptabs">
+  <button class="toptab" data-tab="cut">✂ Cut Voice-Over</button>
+  <button class="toptab active" data-tab="create">🎬 Create Video</button>
+  <button class="toptab" data-tab="post">📤 Post to YouTube</button>
+</div>
+
+<!-- ======================= TAB: CUT VOICE-OVER ======================= -->
+<div class="tabpanel" id="tab-cut">
+  <main class="simplepage">
+    <span class="step-tag">Manual step · run in the VoxCut folder</span>
+    <h2>✂ Cut the voice-over</h2>
+    <p class="lede">After recording, run this once in the <span class="filename">Premeir Pro Voice Over Cutting Automation</span>
+    folder. It transcribes the recording, keeps only the last take of every script line, tightens and splits long
+    pauses, and writes a ready two-track Premiere timeline.</p>
+    <div class="card">
+      <h3>Run in that folder (PowerShell)</h3>
+      <div class="cmd cmd-multiline"><code id="voxcutCmd"></code><button id="copyVoxcutCmd">Copy</button></div>
+      <div class="note">Writes <span class="filename">ready-voice-over.xml</span>. Import it into Premiere with
+      <b>File → Import</b>.</div>
+    </div>
+  </main>
+</div>
+
+<!-- ======================= TAB: CREATE VIDEO ======================= -->
+<div class="app tabpanel active" id="tab-create">
 
   <!-- ======================= SIDEBAR ======================= -->
   <aside>
@@ -329,6 +353,20 @@
 
   </main>
 </div>
+
+<!-- ======================= TAB: POST TO YOUTUBE ======================= -->
+<div class="tabpanel" id="tab-post">
+  <main class="simplepage">
+    <span class="step-tag">External app</span>
+    <h2>📤 Post to YouTube</h2>
+    <p class="lede">Handles Drive → Claude metadata → YouTube upload &amp; scheduling → thumbnail &amp; captions →
+    Telegram notifications. Opens in a new tab.</p>
+    <div class="card">
+      <a class="btn" href="https://mrwisemax.github.io/post-yt-video-automation/" target="_blank" rel="noopener noreferrer">↗ Open Post to YouTube app</a>
+    </div>
+  </main>
+</div>
+
 <div id="toast">Copied ✓</div>
 <script src="script.js"></script>
 </body>

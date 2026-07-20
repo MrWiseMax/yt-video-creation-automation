@@ -6,6 +6,11 @@ const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 const T_SETTINGS = "script_creation_settings";
 const T_VIDEOS = "script_creation_videos";
 
+/* ================= Cut Voice-Over tab: fixed VoxCut command ================= */
+const VOXCUT_CMD =
+  '.\\.venv\\Scripts\\voxcut.exe run "new-script.wav" --script "new-script.txt" --auto-approve `\n' +
+  '  --tighten --split-ms 400 --gap-ms -40 --mono -o "ready-voice-over.xml"';
+
 async function sb(path, opts = {}) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 12000);
@@ -382,8 +387,19 @@ function fallbackCopy(text) {
   ta.remove();
 }
 
+/* ================= top-level tabs ================= */
+function goTopTab(tab) {
+  document.querySelectorAll(".toptab").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+  document.querySelectorAll(".tabpanel").forEach(p => p.classList.toggle("active", p.id === "tab-" + tab));
+}
+
 /* ================= events ================= */
 function bindEvents() {
+  document.querySelectorAll(".toptab").forEach(el =>
+    el.addEventListener("click", () => goTopTab(el.dataset.tab)));
+  $("voxcutCmd").textContent = VOXCUT_CMD;
+  $("copyVoxcutCmd").addEventListener("click", () => copyText(VOXCUT_CMD));
+
   document.querySelectorAll(".navstep").forEach(el =>
     el.addEventListener("click", () => go(el.dataset.step)));
   document.querySelectorAll("[data-go]").forEach(b =>

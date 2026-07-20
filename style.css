@@ -2,16 +2,31 @@
   --bg:#0e1117; --panel:#171d28; --panel2:#212a3b; --border:#33415c;
   --text:#f0f4fa; --muted:#aab8cd; --accent:#45e3a2; --accent-dim:#2fbd82;
   --code-bg:#0a0e14; --warn:#f2c14e; --danger:#f26d6d; --link:#7fb3ff;
+  --topbar-h:58px;
 }
 *{box-sizing:border-box; margin:0; padding:0;}
 body{background:var(--bg); color:var(--text);
   font:15.5px/1.65 "Segoe UI", system-ui, -apple-system, sans-serif;}
 .app{display:flex; min-height:100vh;}
 
+/* ---------- top-level tabs ---------- */
+.toptabs{height:var(--topbar-h); display:flex; align-items:center; gap:6px; padding:0 20px;
+  background:var(--panel); border-bottom:1px solid var(--border); position:sticky; top:0;
+  z-index:50; overflow-x:auto;}
+.toptab{background:transparent; border:1px solid transparent; color:var(--muted); font-size:14px;
+  font-weight:700; padding:9px 16px; border-radius:9px; cursor:pointer; font-family:inherit;
+  white-space:nowrap;}
+.toptab:hover{background:var(--panel2); color:var(--text);}
+.toptab.active{background:var(--panel2); color:#fff; border-color:var(--accent-dim);}
+.tabpanel{display:none;}
+.tabpanel.active{display:block;}
+#tab-create.active{display:flex;}
+.simplepage{max-width:780px; margin:0 auto; padding:44px 24px 80px;}
+
 /* ---------- sidebar ---------- */
 aside{width:290px; min-width:290px; background:var(--panel); border-right:1px solid var(--border);
-  padding:22px 14px; display:flex; flex-direction:column; gap:4px; position:sticky; top:0;
-  height:100vh; overflow-y:auto;}
+  padding:22px 14px; display:flex; flex-direction:column; gap:4px; position:sticky; top:var(--topbar-h);
+  height:calc(100vh - var(--topbar-h)); overflow-y:auto;}
 .brand{padding:0 10px 12px;}
 .brand h1{font-size:17.5px; letter-spacing:.3px; color:#fff;}
 .brand p{color:var(--muted); font-size:12.5px; margin-top:2px;}
@@ -66,7 +81,7 @@ input:focus, textarea:focus{outline:none; border-color:var(--accent-dim);}
 .promptout{min-height:220px; color:#cdd9ec;}
 .btn{display:inline-flex; align-items:center; gap:7px; background:var(--accent); color:#07130c;
   font-weight:700; font-size:13.5px; border:none; border-radius:8px; padding:10px 18px;
-  cursor:pointer; margin-top:12px;}
+  cursor:pointer; margin-top:12px; text-decoration:none;}
 .btn:hover{background:#5cf0b3;}
 .btn.secondary{background:var(--panel2); color:var(--text); border:1px solid var(--border);}
 .btn.secondary:hover{border-color:var(--accent-dim);}
@@ -79,6 +94,8 @@ input:focus, textarea:focus{outline:none; border-color:var(--accent-dim);}
 .cmd button{background:var(--panel2); border:1px solid var(--border); color:var(--text);
   border-radius:7px; padding:6px 12px; font-size:12px; cursor:pointer; white-space:nowrap;}
 .cmd button:hover{border-color:var(--accent-dim);}
+.cmd-multiline{align-items:flex-start;}
+.cmd-multiline code{white-space:pre-wrap; word-break:break-word;}
 .note{border-left:3px solid var(--accent); background:var(--panel2); border-radius:0 9px 9px 0;
   padding:11px 14px; font-size:13.5px; margin:12px 0; color:#d5deec;}
 .note.warn{border-left-color:var(--warn);}
