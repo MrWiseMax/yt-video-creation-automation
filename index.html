@@ -11,6 +11,10 @@
   <button class="toptab" data-tab="cut">✂ Cut Voice-Over</button>
   <button class="toptab active" data-tab="create">🎬 Create Video</button>
   <button class="toptab" data-tab="post">📤 Post to YouTube</button>
+  <span class="toptab-sep"></span>
+  <button class="toptab" data-tab="radar">📡 Outlier Radar</button>
+  <button class="toptab" data-tab="packaging">🎯 Packaging Lab</button>
+  <button class="toptab" data-tab="autopsy">🔬 Video Autopsy</button>
 </div>
 
 <!-- ======================= TAB: CUT VOICE-OVER ======================= -->
@@ -367,7 +371,116 @@
   </main>
 </div>
 
+<!-- ======================= TAB: OUTLIER RADAR ======================= -->
+<div class="tabpanel" id="tab-radar">
+  <main class="studiopage">
+    <div class="pagehead">
+      <div>
+        <span class="step-tag">Decide · find your next topic</span>
+        <h2>📡 Outlier Radar</h2>
+        <p class="lede">Tracks your competitors automatically and surfaces the videos over-performing their own
+        channel's baseline. <b>Score = views ÷ that channel's typical views</b> — anything hot here is a topic
+        worth making right now.</p>
+      </div>
+      <div class="pageactions">
+        <button class="btn secondary" id="studioSettingsBtn">⚙ Settings</button>
+        <button class="btn secondary" id="radarRefreshBtn">↻ Refresh data</button>
+      </div>
+    </div>
+
+    <div class="card" id="studioSettingsCard" style="display:none">
+      <h3>Studio settings</h3>
+      <label>App key <span class="lbl-note">(paste once — stored only in this browser)</span></label>
+      <input type="password" id="stAppKey" placeholder="paste the studio app key" autocomplete="off">
+      <label>My channel <span class="lbl-note">(link or @handle — powers Packaging Lab &amp; Video Autopsy)</span></label>
+      <div class="inline"><input type="text" id="stMyChannel" placeholder="e.g. https://youtube.com/@yourchannel"><button class="btn" id="stSetChannelBtn">Set</button></div>
+      <div class="settingsstatus" id="stMyChannelStatus"></div>
+      <label>Niche description <span class="lbl-note">(included in every AI analysis)</span></label>
+      <textarea id="stNiche" rows="2" placeholder="e.g. Personal finance & self-improvement, illustrated character videos, 8-12 min"></textarea>
+      <label>Persona / style notes</label>
+      <textarea id="stPersona" rows="2" placeholder="e.g. Calm, sincere, story-driven narration. Character 'Max' (hat + scarf)."></textarea>
+      <label>Minimum outlier score for automatic AI analysis</label>
+      <input type="text" id="stMinScore" style="max-width:120px" placeholder="3">
+      <div class="inline" style="margin-top:14px">
+        <button class="btn" id="stSaveBtn">Save settings</button>
+        <button class="btn secondary" id="stTestBtn">Test connection</button>
+      </div>
+      <div class="settingsstatus" id="stTestStatus"></div>
+    </div>
+
+    <div class="card">
+      <div class="inline">
+        <input type="text" id="chanInput" placeholder="Track a competitor — paste a channel link, @handle or name">
+        <button class="btn" id="chanAddBtn">+ Track</button>
+      </div>
+      <div class="chiplist" id="chanList"></div>
+    </div>
+
+    <div class="feedbar">
+      <select id="radarSort">
+        <option value="score">Sort: outlier score</option>
+        <option value="new">Sort: newest</option>
+        <option value="vpd">Sort: views / day</option>
+      </select>
+      <input type="text" id="radarMin" placeholder="min score">
+      <label class="chk"><input type="checkbox" id="radarHideShorts" checked> hide Shorts</label>
+      <input type="text" id="radarSearch" placeholder="search titles…" class="grow">
+    </div>
+    <div id="radarFeed"></div>
+  </main>
+</div>
+
+<!-- ======================= TAB: PACKAGING LAB ======================= -->
+<div class="tabpanel" id="tab-packaging">
+  <main class="studiopage">
+    <div class="pagehead">
+      <div>
+        <span class="step-tag">Package · win the click</span>
+        <h2>🎯 Packaging Lab</h2>
+        <p class="lede">Give it a topic — it studies your own past titles plus what's over-performing in your
+        niche right now, and returns <b>15 ranked title options</b> and thumbnail concepts. Preview any title
+        in a fake YouTube feed next to real competitor videos.</p>
+      </div>
+    </div>
+    <div class="card">
+      <label>Video topic</label>
+      <input type="text" id="pkgTopic" placeholder="e.g. Why saving money is keeping you poor">
+      <label>Notes <span class="lbl-note">(optional — angle, constraints, keywords)</span></label>
+      <textarea id="pkgNotes" rows="2"></textarea>
+      <button class="btn" id="pkgGenBtn">⚡ Generate 15 titles</button>
+      <span class="settingsstatus" id="pkgStatus"></span>
+    </div>
+    <div id="pkgResult"></div>
+    <div class="card">
+      <div class="vl-head"><h3>Previous sessions</h3><button class="btn secondary" id="pkgHistBtn">↻ Refresh</button></div>
+      <div id="pkgHistory" class="videolist"><div class="emptylist">Loading…</div></div>
+    </div>
+  </main>
+</div>
+
+<!-- ======================= TAB: VIDEO AUTOPSY ======================= -->
+<div class="tabpanel" id="tab-autopsy">
+  <main class="studiopage">
+    <div class="pagehead">
+      <div>
+        <span class="step-tag">Learn · why it performed</span>
+        <h2>🔬 Video Autopsy</h2>
+        <p class="lede">Automatic post-mortems on your own uploads at <b>48 hours</b> and <b>14 days</b>, plus
+        on-demand deep dives. Each report diagnoses topic → packaging → hook → retention → engagement and tells
+        you what to change next time.</p>
+      </div>
+      <div class="pageactions"><button class="btn secondary" id="autopsyRefreshBtn">↻ Refresh list</button></div>
+    </div>
+    <div id="autopsyIntro"></div>
+    <div id="autopsyList"></div>
+  </main>
+</div>
+
 <div id="toast">Copied ✓</div>
 <script src="script.js"></script>
+<script src="js/studio-shared.js"></script>
+<script src="js/radar.js"></script>
+<script src="js/packaging.js"></script>
+<script src="js/autopsy.js"></script>
 </body>
 </html>
