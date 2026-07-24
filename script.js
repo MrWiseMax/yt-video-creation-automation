@@ -44,37 +44,27 @@ const esc = s => String(s).replace(/[&<>"']/g,
   c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 /* ================= prompt templates ================= */
-function buildPrompt1() {
+/* Shared voice-over-script building blocks — reused by the Setup workflow (buildPrompt1)
+   AND the Radar "📝 Script from this video" workflow (js/radar.js), so both produce a
+   file with the EXACT same format the recording/editing pipeline depends on. */
+function voSampleBlock() {
   const samples = settings.samples.map(s => s.trim()).filter(Boolean);
-  const sampleBlock = samples.length
+  return samples.length
     ? samples.map((s, i) => "SAMPLE " + (i + 1) + ":\n" + s).join("\n\n")
     : "SAMPLE 1:\n(!! no sample scripts saved yet — add them in the Setup page !!)";
-  const title = video.title.trim() || "(!! fill in the video title / idea above !!)";
-  const points = video.keyPoints.trim() || "(!! fill in the key points above !!)";
-  const dur = settings.duration.trim() || "8-12";
+}
+
+function voToneBlock() {
   return [
-"You are a professional YouTube scriptwriter. Write a complete, ready-to-record voice-over script for my next video, matching my channel's exact tone and rhythm.",
-"",
-"--- MY SAMPLE SCRIPTS (study these for tone, rhythm and structure only - do NOT reuse their content or examples) ---",
-"",
-sampleBlock,
-"",
-"--- THE NEW VIDEO ---",
-"",
-"TOPIC / IDEA:",
-title,
-"",
-"KEY POINTS TO COVER (keep this order unless a clearly better order exists - if you reorder, say why at the very end, after the script, in one short note):",
-points,
-"",
-"TARGET LENGTH: " + dur + " minutes.",
-"My voice-over pace is about 155-165 spoken words per minute, so aim for roughly TARGET MINUTES x 160 words. For a range, land near the middle. Count your words before finishing; expand or trim the BODY sections (never the hook, never the ending) to land inside the target range.",
-"",
 "--- TONE RULES ---",
 "- Before writing, silently analyze my samples: how they hook in the first seconds, sentence length and rhythm, vocabulary level, how they talk to the viewer, use of questions and repetition for emphasis, how they transition between points, and how they close with a call to action. Mirror ALL of it.",
 "- Write for the ear, not the eye: contractions, direct address (\"you\"), short punchy sentences, concrete everyday examples.",
 "- Stay 100% consistent with the samples' personality. If they are calm and sincere, do not become hype. If they are playful, do not become formal.",
-"",
+  ];
+}
+
+function voFormatBlock() {
+  return [
 "--- FORMAT RULES (critical - my recording and editing pipeline depends on these exactly, this is the content of the file, not your chat reply) ---",
 "- The script itself contains ONLY the script text. No title, no headings, no scene numbers, no [pause] or stage directions, no markdown, no emojis, no notes before or inside the script.",
 "- ONE BREATH PER LINE: each line is one short spoken phrase I can say in a single breath - about 4 to 12 words. Never more than 14 words on one line. A long sentence simply continues on the next line.",
@@ -89,14 +79,43 @@ points,
 "but it does not move you forward.",
 "Because the second they cut your paycheck,",
 "you are done.",
-"",
+  ];
+}
+
+function voOutputBlock() {
+  return [
 "--- WHAT TO OUTPUT (read carefully) ---",
 "- Go straight to creating a downloadable .txt file named exactly voice-over-script.txt containing the full script, formatted exactly as above.",
 "- Do NOT print the script text in the chat reply itself - it belongs ONLY inside the file. After the file is created you may add one short confirmation sentence, nothing more.",
 "- ONLY IF your tool is genuinely unable to create downloadable files: then output the full script as plain chat text instead, in the exact same format, as a fallback.",
 "",
-"Now write the full script."
-  ].join("\n");
+"Now write the full script.",
+  ];
+}
+
+function buildPrompt1() {
+  const title = video.title.trim() || "(!! fill in the video title / idea above !!)";
+  const points = video.keyPoints.trim() || "(!! fill in the key points above !!)";
+  const dur = settings.duration.trim() || "8-12";
+  return [
+"You are a professional YouTube scriptwriter. Write a complete, ready-to-record voice-over script for my next video, matching my channel's exact tone and rhythm.",
+"",
+"--- MY SAMPLE SCRIPTS (study these for tone, rhythm and structure only - do NOT reuse their content or examples) ---",
+"",
+voSampleBlock(),
+"",
+"--- THE NEW VIDEO ---",
+"",
+"TOPIC / IDEA:",
+title,
+"",
+"KEY POINTS TO COVER (keep this order unless a clearly better order exists - if you reorder, say why at the very end, after the script, in one short note):",
+points,
+"",
+"TARGET LENGTH: " + dur + " minutes.",
+"My voice-over pace is about 155-165 spoken words per minute, so aim for roughly TARGET MINUTES x 160 words. For a range, land near the middle. Count your words before finishing; expand or trim the BODY sections (never the hook, never the ending) to land inside the target range.",
+"",
+  ].concat(voToneBlock(), [""], voFormatBlock(), [""], voOutputBlock()).join("\n");
 }
 
 function buildPrompt2() {
