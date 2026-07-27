@@ -13,6 +13,8 @@ function radarInit() {
   $("stSetChannelBtn").addEventListener("click", setMyChannel);
   $("chanAddBtn").addEventListener("click", addChannel);
   $("chanInput").addEventListener("keydown", e => { if (e.key === "Enter") addChannel(); });
+  $("sfuFetchBtn").addEventListener("click", loadVideoForScript);
+  $("sfuUrl").addEventListener("keydown", e => { if (e.key === "Enter") loadVideoForScript(); });
   $("radarRefreshBtn").addEventListener("click", refreshRadarData);
   ["radarSort", "radarMin", "radarHideShorts", "radarSearch"].forEach(id =>
     $(id).addEventListener(id === "radarSort" || id === "radarHideShorts" ? "change" : "input", renderRadarFeed));
@@ -37,10 +39,25 @@ async function radarLoad() {
 }
 
 /* ---------- settings ---------- */
+
+/* The channel input used to be blanked on every open, so the handle looked lost
+   after a reload even though the channel itself was saved. studio_settings only
+   stores the resolved id/title, so remember what was actually typed here in this
+   browser and fall back to the canonical /channel/UC… link (which resolves just
+   as well) on a browser that has never set it. */
+const MY_CHANNEL_LS = "studio_my_channel";
+
+function savedMyChannel() {
+  const typed = localStorage.getItem(MY_CHANNEL_LS);
+  if (typed) return typed;
+  const id = (studio.settings || {}).my_channel_id;
+  return id ? "https://www.youtube.com/channel/" + id : "";
+}
+
 function fillSettingsForm() {
   const s = studio.settings || {};
   $("stAppKey").value = studioAppKey();
-  $("stMyChannel").value = "";
+  $("stMyChannel").value = savedMyChannel();
   $("stMyChannelStatus").textContent = s.my_channel_title
     ? "Current channel: " + s.my_channel_title : "No channel set yet.";
   $("stNiche").value = s.niche_description || "";
@@ -90,6 +107,7 @@ async function setMyChannel() {
   const btn = $("stSetChannelBtn"); btn.disabled = true; btn.textContent = "Setting…";
   try {
     const r = await studioApi("set_my_channel", { query: q });
+    localStorage.setItem(MY_CHANNEL_LS, q);   // only once it actually resolved
     $("stMyChannelStatus").textContent = "Current channel: " + r.channel.title +
       " — " + r.videos_imported + " videos imported";
     await studioLoadSettings();
@@ -248,27 +266,42 @@ async function toggleRadarAnalysis(item, videoId) {
   btn.disabled = false;
 }
 
-/* ---------- script-from-video workflow (no Claude API cost — builds a paste-ready prompt) ---------- */
-function toggleScriptBox(item, videoId) {
-  const boxEl = item.querySelector(".scriptbox");
-  if (boxEl.style.display !== "none") { boxEl.style.display = "none"; return; }
-  const v = studio.radarVideos.find(x => x.video_id === videoId) || {};
-  const ch = studio.channels.find(c => c.channel_id === v.channel_id) || {};
-  const url = "https://www.youtube.com/watch?v=" + videoId;
+/* ---------- script-from-video workflow (no Claude API cost — builds a paste-ready prompt) ----------
+   ONE form, two entry points: the 📝 Script button on a radar item and the
+   🔗 "Script from any video URL" card. Both render scriptFormHtml() and both
+   emit through buildScriptFromVideoPrompt(), so the prompt is byte-for-byte the
+   same whichever way you got here. */
+
+const TRANSCRIPT_STEPS =
+  "<div class='note'><b>Grab the transcript (about 10 seconds):</b><br>" +
+  "1. Open the video → under it click <b>…more</b><br>" +
+  "2. Scroll down → <b>Show transcript</b><br>" +
+  "3. In the transcript panel click <b>⋮</b> → <b>Toggle timestamps</b> (off)<br>" +
+  "4. Click inside the panel, select all and copy → paste below</div>";
+
+function scriptFormHtml(o) {
   const haveSamples = typeof settings !== "undefined" &&
     settings.samples && settings.samples.some(s => s && s.trim());
-
-  boxEl.innerHTML =
-    "<h4>📝 Turn this into a voice-over script</h4>" +
+  return (o.heading ? "<h4>" + esc(o.heading) + "</h4>" : "") +
     (haveSamples ? "" :
       "<div class='note warn'>No sample scripts saved yet — add them in <b>🎬 Create → Setup</b> so the script keeps your voice.</div>") +
-    "<label>Topic / idea <span class='lbl-note'>(prefilled from this video — edit freely)</span></label>" +
-    "<input type='text' class='sf-topic' value=\"" + esc(v.title || "") + "\">" +
-    "<label>Reference transcript <span class='lbl-note'>(inspiration only — never copied; leave empty to use the topic alone)</span></label>" +
-    "<textarea class='sf-tr mono' rows='4' placeholder='On YouTube: open the video → “…more” → Show transcript → copy it here'></textarea>" +
-    "<a class='sf-link lbl-note' href='" + esc(url) + "' target='_blank' rel='noopener'>▶ Open the video to grab its transcript</a>" +
+    (o.steps ? TRANSCRIPT_STEPS : "") +
+    "<label>Topic / idea <span class='lbl-note'>(" +
+      esc(o.topicNote || "edit freely") + ")</span></label>" +
+    "<input type='text' class='sf-topic' value=\"" + esc(o.title || "") + "\">" +
+    "<label>Reference transcript <span class='lbl-note'>(inspiration only — never copied; " +
+      "leave empty to use the topic alone)</span> <span class='sf-count lbl-note'></span></label>" +
+    "<textarea class='sf-tr mono' rows='" + (o.rows || 4) + "' placeholder='" +
+      esc(o.trPlaceholder || "On YouTube: open the video → “…more” → Show transcript → copy it here") +
+      "'>" + esc(o.transcript || "") + "</textarea>" +
+    (o.url ? "<a class='sf-link lbl-note' href='" + esc(o.url) + "' target='_blank' rel='noopener'>" +
+      "▶ Open the video to grab its transcript</a>" : "") +
     "<label>Extra angle / key points <span class='lbl-note'>(optional)</span></label>" +
-    "<textarea class='sf-notes' rows='2' placeholder='e.g. focus on beginners, add a real example, avoid jargon…'></textarea>" +
+    "<textarea class='sf-notes' rows='2' placeholder='e.g. focus on beginners, add a real example, avoid jargon…'>" +
+      esc(o.notes || "") + "</textarea>" +
+    (o.chapters && o.chapters.length
+      ? "<button class='btn secondary sf-chapters' style='margin-top:8px'>⤵ Use the video's " +
+        o.chapters.length + " chapters as key points</button>" : "") +
     "<button class='btn sf-gen'>⚙ Build the script prompt</button>" +
     "<div class='sf-outwrap' style='display:none'>" +
       "<label>Ready-to-paste prompt</label>" +
@@ -277,23 +310,104 @@ function toggleScriptBox(item, videoId) {
       "<div class='note'>Paste into <b>Claude / ChatGPT</b>. It builds <span class='filename'>voice-over-script.txt</span> — " +
         "save it into the video's folder, then continue at <b>🎬 Create → Step 2</b>.</div>" +
     "</div>";
-  boxEl.style.display = "block";
+}
+
+function wireScriptForm(boxEl, ctx) {
+  const tr = boxEl.querySelector(".sf-tr");
+  const count = boxEl.querySelector(".sf-count");
+  const updateCount = () => {
+    const n = tr.value.trim() ? tr.value.trim().split(/\s+/).length : 0;
+    count.textContent = n ? "— " + fmtNum(n) + " words pasted (~" +
+      (n / 160).toFixed(1) + " min of speech)" : "";
+  };
+  tr.addEventListener("input", updateCount);
+  updateCount();
+
+  const chapBtn = boxEl.querySelector(".sf-chapters");
+  if (chapBtn) chapBtn.addEventListener("click", () => {
+    const notes = boxEl.querySelector(".sf-notes");
+    const block = "Points the reference video covers (cover the same ground better, in my own words):\n" +
+      (ctx.chapters || []).join("\n");
+    notes.value = notes.value.trim() ? notes.value.trim() + "\n" + block : block;
+    chapBtn.disabled = true;
+  });
 
   boxEl.querySelector(".sf-gen").addEventListener("click", () => {
-    const prompt = buildScriptFromVideoPrompt({
+    boxEl.querySelector(".sf-out").value = buildScriptFromVideoPrompt({
       title: boxEl.querySelector(".sf-topic").value,
-      transcript: boxEl.querySelector(".sf-tr").value,
+      transcript: tr.value,
       notes: boxEl.querySelector(".sf-notes").value,
-      channel: ch.title,
-      url: url,
+      channel: ctx.channel,
+      url: ctx.url,
     });
-    boxEl.querySelector(".sf-out").value = prompt;
     const wrap = boxEl.querySelector(".sf-outwrap");
     wrap.style.display = "block";
     wrap.scrollIntoView({ behavior: "smooth", block: "nearest" });
   });
   boxEl.querySelector(".sf-copy").addEventListener("click", () =>
     copyText(boxEl.querySelector(".sf-out").value));
+}
+
+function toggleScriptBox(item, videoId) {
+  const boxEl = item.querySelector(".scriptbox");
+  if (boxEl.style.display !== "none") { boxEl.style.display = "none"; return; }
+  const v = studio.radarVideos.find(x => x.video_id === videoId) || {};
+  const ch = studio.channels.find(c => c.channel_id === v.channel_id) || {};
+  const url = "https://www.youtube.com/watch?v=" + videoId;
+  boxEl.innerHTML = scriptFormHtml({
+    heading: "📝 Turn this into a voice-over script",
+    title: v.title || "",
+    topicNote: "prefilled from this video — edit freely",
+    url: url,
+  });
+  boxEl.style.display = "block";
+  wireScriptForm(boxEl, { channel: ch.title, url: url });
+}
+
+/* ---------- 🔗 script from any video URL ---------- */
+
+/* Chapter lines out of a description ("0:00 Intro", "1:24 - The real reason"). */
+function parseChapters(desc) {
+  const out = [];
+  String(desc || "").split(/\r?\n/).forEach(ln => {
+    const m = ln.match(/^\s*[\(\[]?((?:\d{1,2}:)?\d{1,2}:\d{2})[\)\]]?\s*[-–—:.]?\s+(.{2,110}?)\s*$/);
+    if (m) out.push(m[1] + " " + m[2]);
+  });
+  return out.length >= 3 ? out : [];   // 3+ or it's probably not a chapter list
+}
+
+async function loadVideoForScript() {
+  const url = $("sfuUrl").value.trim();
+  const st = $("sfuStatus"), body = $("sfuBody"), btn = $("sfuFetchBtn");
+  if (!url) { toast("Paste a YouTube video link first", true); return; }
+  btn.disabled = true; btn.textContent = "Loading…";
+  st.className = "settingsstatus"; st.textContent = "Reading the video…";
+  try {
+    const r = await studioApi("video_info", { url }, 30000);
+    const chapters = parseChapters(r.description);
+    st.className = "settingsstatus ok";
+    st.textContent = "✓ " + r.title + " — " + r.channel_title + " · " +
+      fmtDur(r.duration_seconds) + " · " + fmtNum(r.view_count) + " views" +
+      (chapters.length ? " · " + chapters.length + " chapters found" : "");
+    body.innerHTML = scriptFormHtml({
+      heading: "📝 " + r.title,
+      title: r.title,
+      topicNote: "prefilled from the video — edit freely",
+      trPlaceholder: "Paste the transcript here — steps above (or leave empty and use the topic + chapters alone)",
+      rows: 8,
+      steps: true,
+      url: r.url,
+      chapters: chapters,
+    });
+    body.style.display = "block";
+    wireScriptForm(body, { channel: r.channel_title, url: r.url, chapters: chapters });
+    body.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  } catch (e) {
+    st.className = "settingsstatus err";
+    st.textContent = "✗ " + e.message;
+    body.style.display = "none";
+  }
+  btn.disabled = false; btn.textContent = "🔎 Load video";
 }
 
 /* Reuses the shared voice-over blocks from script.js so the output file stays

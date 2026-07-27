@@ -416,6 +416,19 @@
       <div class="chiplist" id="chanList"></div>
     </div>
 
+    <div class="card">
+      <h3>🔗 Script from any video URL</h3>
+      <p class="lede" style="margin-bottom:14px">Paste <b>any</b> YouTube link — tracked or not — and turn it into the same
+      ready-to-paste prompt that builds <span class="filename">voice-over-script.txt</span>. A second route to the
+      same file, without waiting for the video to show up in the radar feed.</p>
+      <div class="inline">
+        <input type="text" id="sfuUrl" placeholder="https://www.youtube.com/watch?v=…  ·  youtu.be/…  ·  /shorts/…">
+        <button class="btn" id="sfuFetchBtn">🔎 Load video</button>
+      </div>
+      <div class="settingsstatus" id="sfuStatus"></div>
+      <div class="scriptbox" id="sfuBody" style="display:none"></div>
+    </div>
+
     <div class="feedbar">
       <select id="radarSort">
         <option value="score">Sort: outlier score</option>
