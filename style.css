@@ -210,16 +210,8 @@ select:focus{outline:none; border-color:var(--accent-dim);}
 .emptybig{color:var(--muted); text-align:center; padding:40px 10px; border:1px dashed var(--border); border-radius:12px;}
 
 /* packaging */
-.scorechip{display:inline-block; min-width:34px; text-align:center; font-weight:800; border-radius:7px;
-  padding:3px 7px; font-size:12.5px; background:var(--panel2); border:1px solid var(--border); color:var(--muted);}
-.scorechip.good{color:var(--accent); border-color:var(--accent-dim);}
-.scorechip.top{color:#ffb454; border-color:#a8722c;}
-.trow{display:flex; gap:10px; align-items:flex-start; padding:9px 4px; border-bottom:1px solid var(--border);}
-.trow:last-child{border-bottom:none;}
-.trow .tmain{flex:1; min-width:0;}
-.trow .tmain b{color:#fff; font-size:14px;}
-.trow .tmain small{display:block; color:var(--muted); margin-top:2px;}
-.trow .tacts{display:flex; gap:6px;}
+.pkgpromptbox{margin-top:16px; padding-top:14px; border-top:1px dashed var(--border);}
+.pkgpromptbox select{margin-top:0; width:auto; min-width:280px;}
 .prevgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px; margin-top:12px;}
 .prevcard{min-width:0;}
 .prevcard .pthumb{width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:10px; background:var(--code-bg);

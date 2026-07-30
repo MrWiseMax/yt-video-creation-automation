@@ -65,6 +65,45 @@ async function studioLoadSettings() {
   studio.settings = (rows && rows[0]) || {};
 }
 
+/* ---------- shared prompt context blocks ----------
+   The Studio tabs build their AI prompts here in the browser so I can run them in the
+   same Claude chat that wrote the script — no API credits, and that chat still holds my
+   sample scripts. These are the channel-context blocks every one of those prompts needs;
+   they read the rows the tabs already pulled from Supabase, so they cost nothing. */
+
+function studioChannelBlock() {
+  const st = studio.settings || {};
+  return [
+"--- MY CHANNEL ---",
+"Niche: " + (st.niche_description || "(not described yet — personal finance / self-improvement)"),
+"Persona / style notes: " + (st.persona_notes || "(none provided)"),
+  ].join("\n");
+}
+
+/** My own recent long-form titles with their views — the voice signal that matters for
+    packaging, and a read on what my audience actually clicks. */
+function studioMyTitlesBlock(limit) {
+  const vids = (studio.myVideos || []).filter(v => !v.is_short).slice(0, limit || 25);
+  if (!vids.length) return "(my channel's videos are not imported yet — set my channel in 📡 Radar → ⚙ Settings)";
+  return vids.map(v =>
+    "- \"" + v.title + "\" (" + Number(v.view_count || 0).toLocaleString() + " views)").join("\n");
+}
+
+/** Competitor videos beating their own channel baseline — pattern fuel, never to copy. */
+function studioOutlierBlock(limit, days) {
+  const since = Date.now() - (days || 90) * 864e5;
+  const chanById = Object.fromEntries((studio.channels || []).map(c => [c.channel_id, c]));
+  const rows = (studio.radarVideos || [])
+    .filter(v => !v.is_short && v.outlier_score != null &&
+      new Date(v.published_at).getTime() >= since)
+    .sort((a, b) => b.outlier_score - a.outlier_score)
+    .slice(0, limit || 15);
+  if (!rows.length) return "(no competitor outliers collected yet — add channels in 📡 Radar)";
+  return rows.map(v => "- \"" + v.title + "\" (" +
+    Number(v.outlier_score).toFixed(1) + "x baseline, " +
+    ((chanById[v.channel_id] || {}).title || "?") + ")").join("\n");
+}
+
 /* Boot all three tabs once the page (and script.js) is ready. */
 window.addEventListener("load", async () => {
   try { await studioLoadSettings(); } catch (e) { console.error(e); }

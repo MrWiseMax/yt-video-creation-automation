@@ -450,23 +450,46 @@
       <div>
         <span class="step-tag">Package · win the click</span>
         <h2>🎯 Packaging Lab</h2>
-        <p class="lede">Give it a topic — it studies your own past titles plus what's over-performing in your
-        niche right now, and returns <b>15 ranked title options</b> and thumbnail concepts. Preview any title
-        in a fake YouTube feed next to real competitor videos.</p>
+        <p class="lede">Paste your title and the finished script — it builds a ready-to-paste prompt for the
+        chat that wrote your script, grounded in your own past titles and what's over-performing in your
+        niche. Paste the reply back and you'll have <b>15 ranked titles</b> (each one proved against a line
+        of your script) plus <b>3 ready-to-paste thumbnail prompts</b> built around your character. Preview
+        any title in a fake YouTube feed next to real competitor videos.</p>
       </div>
     </div>
     <div class="card">
-      <label>Video topic</label>
+      <label>Video title <span class="lbl-note">(required — it will try to beat it)</span></label>
       <input type="text" id="pkgTopic" placeholder="e.g. Why saving money is keeping you poor">
+      <label>Full voice-over script <span class="lbl-note">(required — paste all of
+        <span class="filename">voice-over-script.txt</span> — this is what keeps the packaging honest)</span>
+        <span class="lbl-note" id="pkgScriptCount"></span></label>
+      <textarea id="pkgScript" class="mono" rows="8" placeholder="Paste the whole script here — every title comes back with the line that proves the video delivers it."></textarea>
       <label>Notes <span class="lbl-note">(optional — angle, constraints, keywords)</span></label>
       <textarea id="pkgNotes" rows="2"></textarea>
-      <button class="btn" id="pkgGenBtn">⚡ Generate 15 titles</button>
-      <span class="settingsstatus" id="pkgStatus"></span>
+
+      <div class="pkgpromptbox">
+        <label>Where will you paste it? <span class="lbl-note" id="pkgModeHint"></span></label>
+        <select id="pkgPromptMode">
+          <option value="continue">Continuing the chat that wrote this script (recommended)</option>
+          <option value="fresh">A fresh chat</option>
+        </select>
+        <button class="btn" id="pkgPromptBtn">⚙ Build the packaging prompt</button>
+        <div class="sf-outwrap" id="pkgPromptWrap" style="display:none">
+          <label>Ready-to-paste prompt</label>
+          <textarea id="pkgPromptOut" class="promptout" rows="16" readonly></textarea>
+          <button class="btn" id="pkgPromptCopy">📋 Copy full prompt</button>
+        </div>
+      </div>
     </div>
-    <div id="pkgResult"></div>
-    <div class="card">
-      <div class="vl-head"><h3>Previous sessions</h3><button class="btn secondary" id="pkgHistBtn">↻ Refresh</button></div>
-      <div id="pkgHistory" class="videolist"><div class="emptylist">Loading…</div></div>
+    <div class="card" id="pkgPreviewCard">
+      <h3>Feed preview — how it competes</h3>
+      <label>Title to preview <span class="lbl-note">(paste any title to see it in a fake YouTube feed)</span></label>
+      <input type="text" id="pkgPrevTitle" placeholder="Paste a title to see it in a fake YouTube feed">
+      <div class="inline" style="margin-top:10px">
+        <input type="file" id="pkgThumbFile" accept="image/*">
+        <span class="lbl-note">optional: pick your draft thumbnail (stays on your computer)</span>
+      </div>
+      <div class="prevgrid" id="pkgPrevGrid"></div>
     </div>
   </main>
 </div>
