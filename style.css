@@ -207,6 +207,35 @@ select:focus{outline:none; border-color:var(--accent-dim);}
 .scriptbox .sf-link:hover{color:var(--accent);}
 .scriptbox .btn{margin-top:12px;}
 .scriptbox .sf-outwrap{margin-top:14px; border-top:1px dashed var(--border); padding-top:12px;}
+
+/* script-type options — grouped so they read as one decision, not four stray fields */
+.sf-opts{margin-top:16px; background:var(--panel); border:1px solid var(--border);
+  border-radius:9px; padding:12px 14px 13px;}
+.sf-opts-head{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.9px;
+  color:var(--muted); margin-bottom:4px;}
+/* must out-specify .scriptbox label{display:block}, or the tick box stacks above its text */
+.scriptbox .sf-opt{display:flex; align-items:flex-start; gap:10px; margin:0; padding:8px 9px;
+  border:1px solid transparent; border-radius:8px; cursor:pointer;
+  font-weight:400; font-size:13.5px; color:var(--text);}
+.scriptbox .sf-opt:hover{background:var(--panel2);}
+/* .scriptbox input is width:100% for the text fields — never for a tick box */
+.scriptbox .sf-opt input[type=checkbox], .scriptbox .sf-opt input[type=radio]{
+  width:15px; min-width:15px; height:15px; margin:2px 0 0; accent-color:var(--accent); cursor:pointer;}
+.sf-opt-text{display:block; line-height:1.4;}
+.sf-opt-text b{display:block; color:var(--text); font-size:13.5px; font-weight:600;}
+.sf-opt-text small{display:block; color:var(--muted); font-size:12px; margin-top:1px;}
+.scriptbox .sf-opt:has(input:checked){background:var(--panel2); border-color:var(--accent-dim);}
+.scriptbox .sf-opt:has(input:checked) .sf-opt-text b{color:var(--accent);}
+.sf-epwrap{margin:2px 0 0 13px; padding:4px 0 2px 13px; border-left:2px solid var(--border);}
+/* ten positions would be a very tall column — two columns keeps the panel compact */
+.sf-eplist{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:0 8px;}
+.scriptbox .sf-opt-tight{padding:5px 8px;}
+.sf-opt-tight .sf-opt-text b{font-size:13px;}
+.sf-eprole{margin:5px 0 2px 8px; font-style:italic;}
+.sf-prevwrap{margin-top:10px; padding-top:9px; border-top:1px dashed var(--border);}
+.sf-prevlist{max-height:190px; overflow-y:auto; margin-top:2px;}
+.sf-prev-empty{color:var(--muted); font-size:12.5px; padding:6px 8px; line-height:1.5;}
+.sf-prev-empty b{color:var(--text);}
 .emptybig{color:var(--muted); text-align:center; padding:40px 10px; border:1px dashed var(--border); border-radius:12px;}
 
 /* packaging */
