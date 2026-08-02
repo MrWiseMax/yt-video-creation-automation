@@ -290,13 +290,12 @@
       <div class="card">
         <h3>Check the result</h3>
         <ol class="instructions">
-          <li>The console prints every scene's match — look at the summary line: similarity around <b>0.9+</b> is great.</li>
-          <li>Look for <b>LOW CONFIDENCE</b> flags in the console output —
-              those few scenes (if any) are the only cuts worth eyeballing in Premiere.</li>
+          <li>Summary line: similarity <b>0.9+</b> is great.</li>
+          <li>Any <b>LOW CONFIDENCE</b> flag = the only cut worth eyeballing in Premiere.</li>
         </ol>
-        <div class="note">Motion is included automatically: slow zoom in/out on every image, a slide every
-        5–8 clips (zoom direction flips after each slide), and a 5-frame cross dissolve at every cut —
-        none at the very start of image 1.</div>
+        <div class="note">You get two files: <span class="filename">timeline.xml</span> (the sequence) and
+        <span class="filename">apply-transitions.jsx</span> (the Push / Zoom Blur accents, one every 5–8 cuts).
+        Both are used in Step 8.</div>
       </div>
       <div class="stepfoot">
         <button class="btn donebtn" data-done="s7">✓ Mark step 7 done</button>
@@ -306,17 +305,37 @@
     <!-- ============ STEP 8 ============ -->
     <section class="panel" id="panel-s8">
       <span class="step-tag">Step 8 · Premiere Pro</span>
-      <h2>Import into Premiere</h2>
-      <p class="lede">The last step — everything arrives already assembled.</p>
+      <h2>Import &amp; finish</h2>
+      <p class="lede">Four moves. Everything arrives already assembled.</p>
       <div class="card">
         <ol class="instructions">
-          <li>In Premiere: <b>File → Import</b> → pick <span class="filename">timeline.xml</span>.</li>
-          <li>Open the imported sequence — images, timing, motion and transitions are already in place.</li>
-          <li>Drop your narration on A1 at 0:00.</li>
-          <li>Play it through once; nudge any LOW CONFIDENCE cut from the build output if needed.</li>
+          <li>Open <span class="filename">YT Vid.prproj</span> → <b>File → Import</b> →
+              <span class="filename">timeline.xml</span>.</li>
+          <li><b>Double-click the imported sequence</b> to open it.</li>
+          <li><b>Window → Extensions → Pipeline Transitions</b> → click <b>Apply transitions</b>.
+              It applies the accents, saves, and closes Premiere.</li>
+          <li>Run <span class="filename">py pipeline.py presets --open</span> — swaps in your preset
+              settings and reopens the project.</li>
         </ol>
+        <div class="note">Then drop your narration on A1 at 0:00 and play it through once.</div>
         <div class="note">🎉 That's the whole pipeline. Hit <b>☁ Save video</b> one last time, then
         <b>Start a new video</b> in the sidebar when you begin the next one.</div>
+      </div>
+
+      <div class="card">
+        <h3>One-time setup</h3>
+        <ol class="instructions">
+          <li>Install the panel — run once, then restart Premiere:
+              <div class="cmd"><code>py pipeline.py install-panel</code><button data-copy="py pipeline.py install-panel">Copy</button></div></li>
+          <li>Save 6 transition presets in Premiere with the look you want, named exactly:
+              <span class="filename">Slide-Left</span> <span class="filename">Slide-Right</span>
+              <span class="filename">Slide-Up</span> <span class="filename">Slide-Down</span>
+              <span class="filename">Zoom-In</span> <span class="filename">Zoom-Out</span></li>
+        </ol>
+        <div class="note">Why the extra step? Premiere won't let a script set transition parameters, so the
+        accents land on the plugin's defaults and <span class="filename">presets</span> writes your saved values
+        into the project file (backing it up first). Premiere must be <b>closed</b> for that — it holds the project
+        in memory — which is why the panel closes it for you.</div>
       </div>
       <div class="stepfoot">
         <button class="btn donebtn" data-done="s8">✓ Mark step 8 done</button>
@@ -339,7 +358,9 @@
           <li>Record the voice-over reading <span class="filename">voice-over-script.txt</span>.</li>
           <li>Cutback → save as <span class="filename">Transcript.srt</span>.</li>
           <li>Run <span class="filename">py pipeline.py build --scale 72</span> → renames the images, then check the console for <b>LOW CONFIDENCE</b>.</li>
-          <li>Premiere → File → Import → <span class="filename">timeline.xml</span>. 🎉</li>
+          <li>Premiere → open <span class="filename">YT Vid.prproj</span> → File → Import → <span class="filename">timeline.xml</span> → open the sequence.</li>
+          <li><b>Window → Extensions → Pipeline Transitions</b> → <b>Apply transitions</b> (applies, saves, closes Premiere).</li>
+          <li>Run <span class="filename">py pipeline.py presets --open</span>. 🎉</li>
         </ol>
       </div>
       <div class="card">
@@ -350,7 +371,9 @@
           <tr><td><span class="filename">Scene\</span></td><td>The images. Downloaded raw (1.png, 1 (1).jpg…), renamed to "001 - sentence.jpg" by the build. <i>(Steps 4, 7)</i></td></tr>
           <tr><td><span class="filename">Transcript.srt</span></td><td>Subtitles of your recorded voice (Cutback). <i>(Step 6)</i></td></tr>
           <tr><td><span class="filename">timeline.xml</span></td><td>The finished Premiere sequence. Import via File → Import. <i>(Step 7)</i></td></tr>
-          <tr><td><span class="filename">pipeline.py</span></td><td>The only script you copy into a new video's folder. <span class="filename">prompts</span> before Flow, <span class="filename">build</span> after recording. <i>(Steps 3, 7)</i></td></tr>
+          <tr><td><span class="filename">apply-transitions.jsx</span></td><td>Adds the Push / Zoom Blur accents after the import — they can't travel inside the XML, Premiere's exporter rewrites third-party transitions as a plain dissolve. Run by the Pipeline Transitions panel. Auto-generated. <i>(Steps 7, 8)</i></td></tr>
+          <tr><td><span class="filename">pipeline.py</span></td><td>The only script you copy into a new video's folder. <span class="filename">prompts</span> before Flow, <span class="filename">build</span> after recording, <span class="filename">presets</span> after Premiere. <i>(Steps 3, 7, 8)</i></td></tr>
+          <tr><td><span class="filename">&lt;project&gt;.prproj.bak</span></td><td>Automatic backup taken the first time <span class="filename">presets</span> edits your project. Delete it once you're happy. <i>(Step 8)</i></td></tr>
         </table>
       </div>
     </section>
