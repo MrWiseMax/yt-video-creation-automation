@@ -279,7 +279,8 @@
       <span class="step-tag">Step 7 · Command</span>
       <h2>Build the timeline</h2>
       <p class="lede">One command renames your images, matches every one to the exact seconds it is spoken,
-      adds the zoom/slide motion and the 5-frame dissolves, and writes <span class="filename">timeline.xml</span>.</p>
+      adds the zoom/slide motion, the 5-frame dissolves and the sound effects, and writes
+      <span class="filename">timeline.xml</span>.</p>
       <div class="card">
         <h3>Run in the video's folder</h3>
         <div class="cmd"><code id="buildCmd">py pipeline.py build --scale 72</code><button id="copyBuildCmd">Copy</button></div>
@@ -292,10 +293,21 @@
         <ol class="instructions">
           <li>Summary line: similarity <b>0.9+</b> is great.</li>
           <li>Any <b>LOW CONFIDENCE</b> flag = the only cut worth eyeballing in Premiere.</li>
+          <li><b>Sound effects:</b> line shows how many landed and on which tracks.</li>
         </ol>
         <div class="note">You get two files: <span class="filename">timeline.xml</span> (the sequence) and
         <span class="filename">apply-transitions.jsx</span> (the Push / Zoom Blur accents, one every 5–8 cuts).
         Both are used in Step 8.</div>
+      </div>
+      <div class="card">
+        <h3>Sound effects — automatic</h3>
+        <div class="note">Anything in your <span class="filename">SFX\</span> library is placed and mixed by
+        this same command; there is nothing extra to run. A whoosh rides every Push/Zoom accent, an impact
+        lands on the occasional ordinary cut, and a tick marks spoken numbers — arriving on their own tracks
+        under your narration, already normalized so nothing is too loud.</div>
+        <div class="note">Whole thing too loud or too quiet? Rebuild with
+        <span class="filename">--sfx-gain -3</span> (or <span class="filename">+3</span>). None at all this time?
+        <span class="filename">--no-sfx</span>. The library is shared across every video and set up once — see Step 8.</div>
       </div>
       <div class="stepfoot">
         <button class="btn donebtn" data-done="s7">✓ Mark step 7 done</button>
@@ -317,7 +329,8 @@
           <li>Run <span class="filename">py pipeline.py presets --open</span> — swaps in your preset
               settings and reopens the project.</li>
         </ol>
-        <div class="note">Then drop your narration on A1 at 0:00 and play it through once.</div>
+        <div class="note">Then drop your narration on <b>A1</b> at 0:00 and play it through once. The sound
+        effects come in on <b>A2 and below</b>, already mixed — A1 is left free for exactly this.</div>
         <div class="note">🎉 That's the whole pipeline. Hit <b>☁ Save video</b> one last time, then
         <b>Start a new video</b> in the sidebar when you begin the next one.</div>
       </div>
@@ -331,7 +344,40 @@
               <span class="filename">Slide-Left</span> <span class="filename">Slide-Right</span>
               <span class="filename">Slide-Up</span> <span class="filename">Slide-Down</span>
               <span class="filename">Zoom-In</span> <span class="filename">Zoom-Out</span></li>
+          <li>Build the sound library once — it lives at
+              <span class="filename">D:\YouTube\Mr Wise Max\YouTube Video Template\SFX\</span>,
+              which is now the <b>default</b>: nothing to pass, nothing to copy per video.
+              Drop your Epidemic Sound downloads straight in — <b>no sorting needed</b>.
+              Then check what landed where:
+              <div class="cmd"><code>py pipeline.py sfx</code><button data-copy="py pipeline.py sfx">Copy</button></div></li>
         </ol>
+        <div class="note"><b>Naming — easiest first.</b> (1) Don't rename Epidemic files at all; their
+        names already sort correctly. (2) For anything that won't sort, start the name with the category
+        word — <span class="filename">whoosh - deep long.wav</span>,
+        <span class="filename">impact - heavy boom.wav</span>,
+        <span class="filename">riser - 3s tension.wav</span>,
+        <span class="filename">ui - soft click.wav</span>,
+        <span class="filename">ambience - room tone.wav</span>; everything after the category word is
+        yours and is ignored. (3) Or drop the file straight into the matching subfolder — a
+        <b>folder always beats the name</b>. Files sorted by name are marked <b>[by name]</b> in the
+        report; anything it can't place is listed and left unused.</div>
+        <div class="note"><b>Packed files split themselves.</b> A .wav holding three whooshes in a row is
+        detected at the silences and used as three separate effects — same file, different in/out points.
+        A single sound with a quiet middle is never cut in half. Add
+        <span class="filename">--no-sfx-split</span> to a build to switch it off.</div>
+        <div class="note"><b>Looped or over-long files are trimmed with a fade.</b> A 20-second ticking loop
+        triggered by one spoken word would run across the narration, so anything longer than its category
+        allows (whoosh 4s · impact 5s · riser 8s · ui 1.5s) is cut back and faded to silence over the last
+        0.4s rather than stopping dead. <span class="filename">--sfx-fade 1.0</span> for a longer fade,
+        <span class="filename">--sfx-fade 0</span> for a hard cut,
+        <span class="filename">--sfx-max-len 0</span> to never trim.</div>
+        <div class="note">After a bulk import, stamp where they came from —
+        <span class="filename">py pipeline.py sfx --source "Epidemic Sound"</span> — which fills
+        <span class="filename">credits.txt</span> so provenance never goes missing.
+        <b>WAV over MP3</b>: a WAV's loudness is measured and the level set from the audio itself; an MP3
+        can only be given a fixed quiet guess. Epidemic's WAV downloads are ideal.</div>
+        <div class="note"><b>Connect your channel in the Epidemic dashboard</b> before publishing — that's
+        what whitelists it against Content ID claims on their own catalogue.</div>
         <div class="note">Why the extra step? Premiere won't let a script set transition parameters, so the
         accents land on the plugin's defaults and <span class="filename">presets</span> writes your saved values
         into the project file (backing it up first). Premiere must be <b>closed</b> for that — it holds the project
@@ -372,7 +418,9 @@
           <tr><td><span class="filename">Transcript.srt</span></td><td>Subtitles of your recorded voice (Cutback). <i>(Step 6)</i></td></tr>
           <tr><td><span class="filename">timeline.xml</span></td><td>The finished Premiere sequence. Import via File → Import. <i>(Step 7)</i></td></tr>
           <tr><td><span class="filename">apply-transitions.jsx</span></td><td>Adds the Push / Zoom Blur accents after the import — they can't travel inside the XML, Premiere's exporter rewrites third-party transitions as a plain dissolve. Run by the Pipeline Transitions panel. Auto-generated. <i>(Steps 7, 8)</i></td></tr>
-          <tr><td><span class="filename">pipeline.py</span></td><td>The only script you copy into a new video's folder. <span class="filename">prompts</span> before Flow, <span class="filename">build</span> after recording, <span class="filename">presets</span> after Premiere. <i>(Steps 3, 7, 8)</i></td></tr>
+          <tr><td><span class="filename">SFX\</span></td><td>The sound library — <b>default</b> at <span class="filename">D:\YouTube\Mr Wise Max\YouTube Video Template\SFX\</span>, used by every video with nothing to pass. Drop files in loose and they're sorted by name into <span class="filename">whoosh</span>, <span class="filename">impact</span>, <span class="filename">riser</span>, <span class="filename">ui</span>, <span class="filename">ambience</span>; a subfolder overrides the name. A .wav holding several effects is split automatically. A local <span class="filename">SFX\</span> inside one video beats the default. <i>(Step 8 · one-time)</i></td></tr>
+          <tr><td><span class="filename">SFX\credits.txt</span></td><td>Where every sound came from and under what licence. Auto-generated by <span class="filename">sfx</span>; <span class="filename">--source "Epidemic Sound"</span> stamps a whole bulk import at once. Files with no record are flagged UNKNOWN.</td></tr>
+          <tr><td><span class="filename">pipeline.py</span></td><td>The only script you copy into a new video's folder. <span class="filename">prompts</span> before Flow, <span class="filename">build</span> after recording, <span class="filename">presets</span> after Premiere; <span class="filename">sfx</span> to check the sound library. <i>(Steps 3, 7, 8)</i></td></tr>
           <tr><td><span class="filename">&lt;project&gt;.prproj.bak</span></td><td>Automatic backup taken the first time <span class="filename">presets</span> edits your project. Delete it once you're happy. <i>(Step 8)</i></td></tr>
         </table>
       </div>
