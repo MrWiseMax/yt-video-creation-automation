@@ -37,12 +37,13 @@ const PKG_THUMB_TEMPLATE = [
 "Create a 16:9 YouTube thumbnail image.",
 "",
 "CHARACTER: use the character in the uploaded reference image as the only person in the frame. Keep their face, hat, scarf, outfit, art style, line weight, colours and proportions exactly as in the reference — do not redesign, restyle, age or re-draw them in a different style. {{POSE}}",
+"STYLE: the entire image is flat 2D illustration in the same drawing style, line weight and colouring as the character reference. The background, setting, furniture and every prop are drawn too — never a photograph, a photo-real environment, or a 3D render with an illustrated character placed on top of it.",
 "SCENE: {{SCENE}}",
 "COMPOSITION: {{COMPOSITION}}",
 "COLOUR & LIGHT: {{PALETTE}}",
 "TEXT: {{TEXT}}",
 "FORMAT: 1280x720. It has to read instantly at 210x118 px on a phone: one subject, one idea, the character's face big enough that the emotion is legible, hard separation between subject and background.",
-"AVOID: a second person or any duplicate of the character, invented numbers or statistics, fake screenshots, fake logos or brand marks, garbled or extra lettering, watermarks, cluttered backgrounds, red circles, arrows, exaggerated shock or open-mouth screaming faces, and anything the video does not actually deliver.",
+"AVOID: photographic or photo-real backgrounds, realistic-looking people, a second person or any duplicate of the character, invented numbers or statistics, fake screenshots, fake logos or brand marks, garbled or extra lettering, watermarks, cluttered backgrounds, red circles, arrows, exaggerated shock or open-mouth screaming faces, and anything the video does not actually deliver.",
 ].join("\n");
 
 function pkgThumbTemplateBlock() {
@@ -55,11 +56,11 @@ PKG_THUMB_TEMPLATE,
 "",
 "Filling the slots:",
 "- {{POSE}}: only what the character is DOING — pose, expression, eyeline, hands, where they look. Never describe their face, clothes, hat, scarf, age or art style; the reference image owns all of that, and a text description fighting the reference is what makes generators drift off-model.",
-"- {{SCENE}}: the background, setting and any objects, in one or two sentences. Real props from the script beat abstract shapes.",
+"- {{SCENE}}: the background, setting and any objects, in one or two sentences, all of it drawn in the same illustrated style as the character. Concrete props from the script beat abstract shapes.",
 "- {{COMPOSITION}}: where the character sits in the 16:9 frame, how tight the crop is, and which region stays empty for the text.",
 "- {{PALETTE}}: colours and lighting in one sentence — high contrast, one dominant accent colour, nothing muddy.",
 "- {{TEXT}}: max 4 words of overlay. If the thumbnail has words, write: render exactly these words and no others — \"MY WORDS\". Heavy bold condensed sans-serif, all caps, one or two lines, with a thin dark outline or drop shadow so it separates from whatever is behind it. Spell it letter-for-letter as written. — If the image is stronger with no text, write instead: no words anywhere in the image — leave the negative space clean so I can add the text myself.",
-"- Leave the FORMAT and AVOID lines exactly as written. 210x118 px is the real size of a thumbnail in a phone feed, which is where most of my impressions happen, and the AVOID list is what keeps my thumbnails out of clickbait territory.",
+"- Leave the STYLE, FORMAT and AVOID lines exactly as written. STYLE is what stops a drawn character being pasted onto a photographic background, 210x118 px is the real size of a thumbnail in a phone feed, which is where most of my impressions happen, and the AVOID list is what keeps my thumbnails out of clickbait territory.",
   ].join("\n");
 }
 
