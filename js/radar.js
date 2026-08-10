@@ -91,10 +91,30 @@ async function testStudioConnection() {
   el.className = "settingsstatus"; el.textContent = "Testing…";
   try {
     const r = await studioApi("ping", {}, 20000);
-    el.className = "settingsstatus ok";
-    el.textContent = "✓ App key OK · YouTube key: " + (r.yt_key ? "✓" : "✗ missing (run set-keys.ps1)") +
+    const line = "✓ App key OK · YouTube key: " + (r.yt_key ? "✓" : "✗ missing (run set-keys.ps1)") +
       " · Claude key: " + (r.claude_key ? "✓" : "✗ missing (run set-keys.ps1)") +
       " · Analytics OAuth: " + (r.analytics_oauth ? "✓" : "— optional");
+    el.className = "settingsstatus ok";
+    el.textContent = line;
+    /* The OAuth ✓ above only means the three secrets exist — it says nothing about the
+       token working. A token minted on the wrong Google account, or expired, still shows
+       ✓ here and then silently becomes "no retention data" inside an autopsy report. So
+       actually call the API. No Claude call, so this stays free to run. */
+    if (r.analytics_oauth) {
+      el.textContent = line + " · checking Analytics…";
+      let a;
+      try {
+        a = await studioApi("test_analytics", {}, 60000);
+      } catch (err) {
+        a = { ok: false, error: err.message };
+      }
+      el.className = "settingsstatus " + (a.ok && a.got_core ? "ok" : "err");
+      el.textContent = line + (a.ok
+        ? (a.got_core
+            ? " · Analytics data: ✓ (" + a.retention_points + " retention points)"
+            : " · Analytics data: ✗ call worked but YouTube returned no rows")
+        : " · Analytics FAILED: " + a.error);
+    }
   } catch (e) {
     el.className = "settingsstatus err";
     el.textContent = "✗ " + e.message;
