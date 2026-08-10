@@ -94,8 +94,6 @@ input:focus, textarea:focus{outline:none; border-color:var(--accent-dim);}
 .cmd button{background:var(--panel2); border:1px solid var(--border); color:var(--text);
   border-radius:7px; padding:6px 12px; font-size:12px; cursor:pointer; white-space:nowrap;}
 .cmd button:hover{border-color:var(--accent-dim);}
-.cmd-multiline{align-items:flex-start;}
-.cmd-multiline code{white-space:pre-wrap; word-break:break-word;}
 .note{border-left:3px solid var(--accent); background:var(--panel2); border-radius:0 9px 9px 0;
   padding:11px 14px; font-size:13.5px; margin:12px 0; color:#d5deec;}
 .note.warn{border-left-color:var(--warn);}
