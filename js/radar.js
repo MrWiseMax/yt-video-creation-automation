@@ -362,6 +362,11 @@ function scriptFormHtml(o) {
         o.chapters.length + " chapters as key points</button>" : "") +
     "<div class='sf-opts'>" +
       "<div class='sf-opts-head'>Script type</div>" +
+      "<label class='sf-opt'><input type='checkbox' class='sf-tone'>" +
+        "<span class='sf-opt-text'><b>Borrow the reference's tone</b>" +
+        "<small>~75% its delivery, 25% mine — for when the reference performs better than I do</small></span></label>" +
+      "<div class='sf-tonenote note warn' style='display:none'>Paste the transcript above too — " +
+        "without it there is nothing to learn a tone from, and the prompt will say so and fall back to my samples.</div>" +
       "<label class='sf-opt'><input type='checkbox' class='sf-foreign'>" +
         "<span class='sf-opt-text'><b>Reference video is not in English</b>" +
         "<small>Forces a native English script — translates the ideas, never the wording</small></span></label>" +
@@ -402,6 +407,18 @@ function wireScriptForm(boxEl, ctx) {
   };
   tr.addEventListener("input", updateCount);
   updateCount();
+
+  /* Borrowing a tone needs something to borrow it FROM, and the transcript is
+     optional on this form — so say so the moment the two settings disagree
+     rather than letting a prompt go out that quietly cannot do what it says. */
+  const toneBox = boxEl.querySelector(".sf-tone");
+  const toneNote = boxEl.querySelector(".sf-tonenote");
+  const syncTone = () => {
+    toneNote.style.display = toneBox.checked && !tr.value.trim() ? "block" : "none";
+  };
+  toneBox.addEventListener("change", syncTone);
+  tr.addEventListener("input", syncTone);
+  syncTone();
 
   const chapBtn = boxEl.querySelector(".sf-chapters");
   if (chapBtn) chapBtn.addEventListener("click", () => {
@@ -471,6 +488,7 @@ function wireScriptForm(boxEl, ctx) {
       channel: ctx.channel,
       url: ctx.url,
       foreign: boxEl.querySelector(".sf-foreign").checked,
+      tone: toneBox.checked,
       episode: episode,
       previous: previous,
     });
@@ -574,6 +592,31 @@ function voLanguageBlock() {
   ];
 }
 
+/* Replaces voToneBlock() when the reference's delivery is the thing worth having.
+   The default block tells the model to clone MY samples and stay 100% consistent
+   with them, which is the exact opposite instruction — so the two can never both
+   be emitted.
+
+   The split is spelled out attribute by attribute instead of left as a bare
+   percentage: "75% its tone" gives a model nothing to check itself against, and
+   the two halves are not interchangeable anyway. Rhythm and structure travel
+   between channels; who is speaking does not. */
+function voToneBlendBlock(haveTranscript) {
+  const out = [
+"--- TONE: BORROW THE REFERENCE'S DELIVERY, KEEP MY IDENTITY (critical) ---",
+"- Aim for roughly 75% the reference video's tone and delivery, 25% mine. The reference out-performs my own channel at this, so its WAY OF TALKING is deliberately the thing being taken. Quietly drifting back to my samples' delivery is the failure mode here, not the safe option.",
+"- Take from the REFERENCE (the 75%): sentence rhythm and length, energy and pace, how it opens and how it builds its hook, how it moves between points, its use of questions, repetition, pauses and emphasis, how direct and confident it is with the viewer, and the shape of how it lands a point.",
+"- Keep from MY SAMPLES (the 25%): who is speaking. My vocabulary level, the kind of everyday examples I reach for, how I address my audience, how sincere versus hyped I am, and how I close. Land near the reference's energy, but never somewhere my own subscribers would not recognise me.",
+"- This is about DELIVERY ONLY. Borrowing how the reference talks is the instruction; borrowing what it says is never included in it. Its wording, sentences, points, examples, analogies, jokes and statistics remain off-limits exactly as the reference rules below state.",
+"- Write for the ear, not the eye: contractions, direct address (\"you\"), short punchy sentences, concrete everyday examples.",
+  ];
+  if (!haveTranscript) {
+    out.push(
+"- NOTE: no transcript of the reference was provided, so there is nothing to study its delivery from. Do not guess at it. Write in my sample scripts' tone instead, and ignore the 75/25 split above.");
+  }
+  return out;
+}
+
 /* My video's own position in a series — not the reference video's. Unchecked is the
    normal case and still emits a block, because a reference that WAS part of a series
    otherwise drags its "last time / next episode" scaffolding into my standalone script. */
@@ -663,7 +706,17 @@ tr,
 "A competitor's video on this topic is performing well, but no transcript was provided. Treat the TOPIC above as the only inspiration - do NOT imitate any specific video.",
       ].concat(meta);
 
-  const freshRules = [
+  // In tone mode the first rule below would ban sentence structure and hook
+  // shape — the very things the tone block just asked for. Same content ban,
+  // reworded so the two blocks give one coherent instruction.
+  const freshRules = opts.tone ? [
+"--- HOW TO USE THE REFERENCE (critical) ---",
+"- Its DELIVERY is being borrowed on purpose - see the tone rules above. Its CONTENT is not, and the two must not be confused.",
+"- Do NOT reuse its wording, sentences, order of points, jokes, analogies, examples or statistics. Sounding like it while saying something of my own is the goal; a reworded copy of it is the failure.",
+"- Cover the topic from fresh angles the reference did not take. Add new insights, deeper explanations and your own original, concrete examples.",
+"- Aim to clearly BEAT the reference: its energy, better substance.",
+"- If a line reproduces one of ITS points or phrases, rewrite what the line SAYS - but keep the rhythm and delivery you just borrowed.",
+  ] : [
 "--- HOW TO USE THE REFERENCE (critical) ---",
 "- The reference only proves this TOPIC works. Do NOT reuse its wording, sentence structure, hook, order of points, jokes, analogies or examples.",
 "- Cover the topic from fresh angles the reference did not take. Add new insights, deeper explanations and your own original, concrete examples.",
@@ -691,10 +744,16 @@ tr,
     ? (b => b.length ? [""].concat(b) : [])(voPreviousEpisodesBlock(opts.previous))
     : [];
 
+  // In tone mode the samples stop being the tone to copy and become the record
+  // of who is talking, so both headers have to stop claiming otherwise.
   return [
-"You are a professional YouTube scriptwriter. Write a complete, ready-to-record voice-over script for my next video, matching my channel's exact tone and rhythm.",
+opts.tone
+  ? "You are a professional YouTube scriptwriter. Write a complete, ready-to-record voice-over script for my next video, delivered in the style of the reference video below while staying recognisably me."
+  : "You are a professional YouTube scriptwriter. Write a complete, ready-to-record voice-over script for my next video, matching my channel's exact tone and rhythm.",
 "",
-"--- MY SAMPLE SCRIPTS (study these for tone, rhythm and structure only - do NOT reuse their content or examples) ---",
+opts.tone
+  ? "--- MY SAMPLE SCRIPTS (who I am and how I talk to my audience - do NOT reuse their content or examples) ---"
+  : "--- MY SAMPLE SCRIPTS (study these for tone, rhythm and structure only - do NOT reuse their content or examples) ---",
 "",
 voSampleBlock(),
 "",
@@ -710,6 +769,7 @@ topic,
     .concat([""], freshRules)
     .concat(langBlock)
     .concat([""], lengthBlock)
-    .concat([""], voToneBlock(), [""], voFormatBlock(), [""], voOutputBlock())
+    .concat([""], opts.tone ? voToneBlendBlock(!!tr) : voToneBlock(),
+            [""], voFormatBlock(), [""], voOutputBlock())
     .join("\n");
 }
