@@ -362,11 +362,14 @@ function scriptFormHtml(o) {
         o.chapters.length + " chapters as key points</button>" : "") +
     "<div class='sf-opts'>" +
       "<div class='sf-opts-head'>Script type</div>" +
-      "<label class='sf-opt'><input type='checkbox' class='sf-tone'>" +
+      // On by default: the reference usually out-performs me on delivery, so
+      // borrowing it is the normal case and writing in my own tone is the
+      // exception worth clicking for.
+      "<label class='sf-opt'><input type='checkbox' class='sf-tone' checked>" +
         "<span class='sf-opt-text'><b>Borrow the reference's tone</b>" +
-        "<small>~75% its delivery, 25% mine — for when the reference performs better than I do</small></span></label>" +
-      "<div class='sf-tonenote note warn' style='display:none'>Paste the transcript above too — " +
-        "without it there is nothing to learn a tone from, and the prompt will say so and fall back to my samples.</div>" +
+        "<small>~75% its delivery, 25% mine — untick to write in my own tone instead</small></span></label>" +
+      "<div class='sf-tonenote note' style='display:none'>This reads the reference's delivery off the " +
+        "transcript — paste it above. Without one the prompt says so and falls back to my samples.</div>" +
       "<label class='sf-opt'><input type='checkbox' class='sf-foreign'>" +
         "<span class='sf-opt-text'><b>Reference video is not in English</b>" +
         "<small>Forces a native English script — translates the ideas, never the wording</small></span></label>" +
