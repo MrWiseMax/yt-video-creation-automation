@@ -334,15 +334,11 @@ function sfPrevListHtml() {
 }
 
 function scriptFormHtml(o) {
-  const haveSamples = typeof settings !== "undefined" &&
-    settings.samples && settings.samples.some(s => s && s.trim());
   // Several of these forms can be open at once (one per radar item, plus the URL
   // card), so the episode radios need a group name unique to THIS form — a shared
   // name would let one form's selection clear another's.
   const epName = "sfep-" + Math.random().toString(36).slice(2, 9);
   return (o.heading ? "<h4>" + esc(o.heading) + "</h4>" : "") +
-    (haveSamples ? "" :
-      "<div class='note warn'>No sample scripts saved yet — add them in <b>🎬 Create → Setup</b> so the script keeps your voice.</div>") +
     (o.steps ? TRANSCRIPT_STEPS : "") +
     "<label>Topic / idea <span class='lbl-note'>(" +
       esc(o.topicNote || "edit freely") + ")</span></label>" +
@@ -369,7 +365,7 @@ function scriptFormHtml(o) {
         "<span class='sf-opt-text'><b>Borrow the reference's tone</b>" +
         "<small>~75% its delivery, 25% mine — untick to write in my own tone instead</small></span></label>" +
       "<div class='sf-tonenote note' style='display:none'>This reads the reference's delivery off the " +
-        "transcript — paste it above. Without one the prompt says so and falls back to my samples.</div>" +
+        "transcript — paste it above. Without one the prompt says so and falls back to my own voice.</div>" +
       "<label class='sf-opt'><input type='checkbox' class='sf-foreign'>" +
         "<span class='sf-opt-text'><b>Reference video is not in English</b>" +
         "<small>Forces a native English script — translates the ideas, never the wording</small></span></label>" +
@@ -581,41 +577,46 @@ async function loadPreviousEpisodes(ids) {
 }
 
 /* Only emitted for a non-English reference. Without it the prompt has NO explicit
-   output language at all — it just happens to work because my samples and the rest
-   of the prompt are English. A long foreign transcript is a strong enough signal to
+   output language at all — it just happens to work because the rest of the prompt
+   is English. A long foreign transcript is a strong enough signal to
    pull stray words back in, so when the source is foreign this has to be stated. */
 function voLanguageBlock() {
   return [
 "--- OUTPUT LANGUAGE (critical) ---",
 "- The reference video is NOT in English. Write the entire script in natural, native-sounding English anyway.",
 "- Translate the IDEAS, never the wording. A literal translation of the reference's sentences is a failure: rebuild every point from scratch the way a native English speaker would actually say it out loud.",
-"- No foreign words, transliterations, or original-language terms anywhere in the script, unless my sample scripts already use them. If a concept has no clean English equivalent, explain it in plain English instead of importing the word.",
+"- No foreign words, transliterations, or original-language terms anywhere in the script. If a concept has no clean English equivalent, explain it in plain English instead of importing the word.",
 "- Replace anything that only lands in the source culture — idioms, names, places, currencies, units, public figures, local references — with equivalents my English-speaking audience recognizes instantly.",
 "- Names of books, studies or authors stay in their normal English form; do not transliterate them.",
   ];
 }
 
 /* Replaces voToneBlock() when the reference's delivery is the thing worth having.
-   The default block tells the model to clone MY samples and stay 100% consistent
-   with them, which is the exact opposite instruction — so the two can never both
-   be emitted.
+   The default block defines my voice outright and asks the model to stay in it,
+   which is the exact opposite instruction — so the two can never both be emitted.
 
    The split is spelled out attribute by attribute instead of left as a bare
    percentage: "75% its tone" gives a model nothing to check itself against, and
-   the two halves are not interchangeable anyway. Rhythm and structure travel
-   between channels; who is speaking does not. */
+   the two halves are not interchangeable anyway. Rhythm travels between channels;
+   who is speaking does not.
+
+   What is NOT on the table is STRUCTURE. voStructureBlock() is emitted either way
+   and owns the shape of the script, so the borrowed half stops at delivery — this
+   is why "how it opens" and "how it builds its hook" are absent from the list
+   below even though they are the first things a tone borrow usually reaches for. */
 function voToneBlendBlock(haveTranscript) {
   const out = [
 "--- TONE: BORROW THE REFERENCE'S DELIVERY, KEEP MY IDENTITY (critical) ---",
-"- Aim for roughly 75% the reference video's tone and delivery, 25% mine. The reference out-performs my own channel at this, so its WAY OF TALKING is deliberately the thing being taken. Quietly drifting back to my samples' delivery is the failure mode here, not the safe option.",
-"- Take from the REFERENCE (the 75%): sentence rhythm and length, energy and pace, how it opens and how it builds its hook, how it moves between points, its use of questions, repetition, pauses and emphasis, how direct and confident it is with the viewer, and the shape of how it lands a point.",
-"- Keep from MY SAMPLES (the 25%): who is speaking. My vocabulary level, the kind of everyday examples I reach for, how I address my audience, how sincere versus hyped I am, and how I close. Land near the reference's energy, but never somewhere my own subscribers would not recognise me.",
+"- Aim for roughly 75% the reference video's tone and delivery, 25% mine. The reference out-performs my own channel at this, so its WAY OF TALKING is deliberately the thing being taken. Quietly drifting back to a neutral delivery is the failure mode here, not the safe option.",
+"- Take from the REFERENCE (the 75%): sentence rhythm and length, energy and pace, how it moves between points, its use of questions, repetition, pauses and emphasis, how direct and confident it is with the viewer, and the shape of how it lands a point.",
+"- Keep from MY VOICE (the 25%): who is speaking. The vocabulary level, the kind of everyday examples, how the viewer is addressed, and how sincere rather than hyped it stays - all as set out in the VOICE rules. Land near the reference's energy, but never somewhere my own subscribers would not recognise me.",
+"- STRUCTURE IS NOT BORROWED AT ALL. The story structure below is mine and is followed exactly, whatever shape the reference video happens to have. Delivery is the only thing being taken from it.",
 "- This is about DELIVERY ONLY. Borrowing how the reference talks is the instruction; borrowing what it says is never included in it. Its wording, sentences, points, examples, analogies, jokes and statistics remain off-limits exactly as the reference rules below state.",
 "- Write for the ear, not the eye: contractions, direct address (\"you\"), short punchy sentences, concrete everyday examples.",
   ];
   if (!haveTranscript) {
     out.push(
-"- NOTE: no transcript of the reference was provided, so there is nothing to study its delivery from. Do not guess at it. Write in my sample scripts' tone instead, and ignore the 75/25 split above.");
+"- NOTE: no transcript of the reference was provided, so there is nothing to study its delivery from. Do not guess at it. Write in my own voice as set out in the VOICE rules instead, and ignore the 75/25 split above.");
   }
   return out;
 }
@@ -675,7 +676,7 @@ function voPreviousEpisodesBlock(previous) {
 "- NEVER re-teach a point they already delivered. If this episode depends on one, reference it in a single short line ('back in part one we covered X') and move straight on.",
 "- Keep the terminology, framing and running examples they established. The viewer already learned those words — do not rename things.",
 "- Pick up any thread they deliberately left open, and honour anything they promised would come later.",
-"- Do NOT copy their wording, hook shape, or structure. This episode must sound like the same person on a new subject, not like a remix of the old scripts.",
+"- Do NOT copy their wording or their examples. This episode must sound like the same person on a new subject, not like a remix of the old scripts. (Their SHAPE is the same by design - every episode is built on the same spine below - so matching that is correct, and only the content must be new.)",
   ];
   previous.forEach((p, i) => {
     out.push("", "EPISODE " + (i + 1) + " — \"" + p.title + "\":", p.script);
@@ -747,18 +748,10 @@ tr,
     ? (b => b.length ? [""].concat(b) : [])(voPreviousEpisodesBlock(opts.previous))
     : [];
 
-  // In tone mode the samples stop being the tone to copy and become the record
-  // of who is talking, so both headers have to stop claiming otherwise.
   return [
 opts.tone
-  ? "You are a professional YouTube scriptwriter. Write a complete, ready-to-record voice-over script for my next video, delivered in the style of the reference video below while staying recognisably me."
-  : "You are a professional YouTube scriptwriter. Write a complete, ready-to-record voice-over script for my next video, matching my channel's exact tone and rhythm.",
-"",
-opts.tone
-  ? "--- MY SAMPLE SCRIPTS (who I am and how I talk to my audience - do NOT reuse their content or examples) ---"
-  : "--- MY SAMPLE SCRIPTS (study these for tone, rhythm and structure only - do NOT reuse their content or examples) ---",
-"",
-voSampleBlock(),
+  ? "You are a professional YouTube scriptwriter. Write a complete, ready-to-record voice-over script for my next video, delivered in the style of the reference video below while staying recognisably me. My channel's story structure is defined in full further down and is followed exactly either way."
+  : "You are a professional YouTube scriptwriter. Write a complete, ready-to-record voice-over script for my next video, in my channel's voice and built on my channel's story structure - both are defined in full below.",
 "",
 "--- THE NEW VIDEO ---",
 "",
@@ -772,6 +765,7 @@ topic,
     .concat([""], freshRules)
     .concat(langBlock)
     .concat([""], lengthBlock)
+    .concat([""], voStructureBlock())
     .concat([""], opts.tone ? voToneBlendBlock(!!tr) : voToneBlock(),
             [""], voFormatBlock(), [""], voOutputBlock())
     .join("\n");

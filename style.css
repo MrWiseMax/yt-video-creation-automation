@@ -118,9 +118,6 @@ table.ref td:first-child{white-space:nowrap;}
   font-size:14px; transition:transform .25s; z-index:50; max-width:80vw; text-align:center;}
 #toast.show{transform:translateX(-50%) translateY(0);}
 #toast.err{background:var(--danger); color:#fff;}
-.samplestatus{font-size:13px; margin-top:10px;}
-.samplestatus.ok{color:var(--accent);}
-.samplestatus.missing{color:var(--warn);}
 .settingsstatus{font-size:12.5px; margin-top:12px; color:var(--muted);}
 .settingsstatus.ok{color:var(--accent);}
 .settingsstatus.err{color:var(--danger);}

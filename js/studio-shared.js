@@ -67,8 +67,8 @@ async function studioLoadSettings() {
 
 /* ---------- shared prompt context blocks ----------
    The Studio tabs build their AI prompts here in the browser so I can run them in the
-   same Claude chat that wrote the script — no API credits, and that chat still holds my
-   sample scripts. These are the channel-context blocks every one of those prompts needs;
+   same Claude chat that wrote the script — no API credits, and that chat still holds the
+   script and the voice rules. These are the channel-context blocks every one of those prompts needs;
    they read the rows the tabs already pulled from Supabase, so they cost nothing. */
 
 function studioChannelBlock() {

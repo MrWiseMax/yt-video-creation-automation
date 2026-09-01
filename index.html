@@ -34,7 +34,7 @@
       <button class="btn savebtn" id="saveVideoBtn">☁ Save video</button>
       <div class="cloudstatus" id="cloudStatus">Connecting to Supabase…</div>
     </div>
-    <div class="navstep" data-step="setup"><span class="dot">⚙</span><span>Setup — samples &amp; duration</span></div>
+    <div class="navstep" data-step="setup"><span class="dot">⚙</span><span>Setup — target duration</span></div>
     <div class="navstep" data-step="videos"><span class="dot">📂</span><span>My videos</span></div>
     <div class="nav-sep"></div>
     <div class="navstep" data-step="s1"><span class="dot">1</span><span>Video details → script prompt</span></div>
@@ -56,22 +56,21 @@
     <!-- ============ SETUP ============ -->
     <section class="panel" id="panel-setup">
       <span class="step-tag">One-time setup · shared by all videos</span>
-      <h2>Sample scripts &amp; target duration</h2>
-      <p class="lede">Paste 2–3 full scripts from your channel's previous videos — the AI studies them to
-      clone your tone on every new video. These and the target duration are global settings, stored in
-      your Supabase cloud and saved automatically as you type.</p>
+      <h2>Target duration</h2>
+      <p class="lede">Your channel's voice and story structure are built into every script prompt, so there
+      is nothing to paste here any more. All that is left is how long the video should run — a global
+      setting, stored in your Supabase cloud and saved automatically as you type.</p>
       <div class="card">
-        <label for="sample1">Sample script 1</label>
-        <textarea id="sample1" class="mono" rows="7" placeholder="Paste the full voice-over script of a previous video..."></textarea>
-        <label for="sample2">Sample script 2</label>
-        <textarea id="sample2" class="mono" rows="7" placeholder="Paste another previous script..."></textarea>
-        <label for="sample3">Sample script 3 (optional)</label>
-        <textarea id="sample3" class="mono" rows="7" placeholder="Optional third script — leave empty if unused"></textarea>
         <label for="duration">Target video length (minutes) — used by every new script</label>
         <input type="text" id="duration" placeholder="e.g. 8-12  or  10" style="max-width:180px;">
-        <div class="samplestatus" id="sampleStatus"></div>
         <div class="settingsstatus" id="settingsStatus"></div>
       </div>
+      <div class="note"><b>The story spine.</b> Every script prompt now asks for the same nine beats, in
+      order: the anomaly → what I did → who I am → the promise → the wrong model → the body
+      (3–5 escalating moves) → the turn → so what → the send-off. The beats are never written into the
+      script as headings — they are the shape underneath it. To change the spine or the fixed
+      self-introduction, edit <span class="filename">voStructureBlock()</span> in
+      <span class="filename">script.js</span>.</div>
     </section>
 
     <!-- ============ MY VIDEOS ============ -->
@@ -86,16 +85,16 @@
         <div class="videolist" id="videoList"><div class="emptylist">Loading…</div></div>
       </div>
       <div class="note">Saving is keyed by the <b>video title</b>: clicking <b>☁ Save video</b> with an
-      existing title updates that entry; a new title creates a new one. Sample scripts and duration are
-      global (Setup) and shared by all videos.</div>
+      existing title updates that entry; a new title creates a new one. The target duration is a global
+      setting (Setup) and is shared by all videos.</div>
     </section>
 
     <!-- ============ STEP 1 ============ -->
     <section class="panel" id="panel-s1">
       <span class="step-tag">Step 1 · AI chat</span>
       <h2>Video details → voice-over script prompt</h2>
-      <p class="lede">Fill in the new video's details. The app builds the complete, ready-to-paste prompt
-      (with your sample scripts and target duration already inside).</p>
+      <p class="lede">Fill in the new video's details. The app builds the complete, ready-to-paste prompt,
+      with your channel's voice, the nine-beat story spine and the target duration already inside.</p>
 
       <div class="card">
         <label for="vidTitle">New video title / idea</label>

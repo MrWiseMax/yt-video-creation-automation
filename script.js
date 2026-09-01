@@ -26,7 +26,7 @@ async function sb(path, opts = {}) {
 }
 
 /* ================= state (in memory — the cloud is the storage) ================= */
-let settings = { samples: ["", "", ""], duration: "8-12" };
+let settings = { duration: "8-12" };
 function blankVideo() { return { id: null, title: "", keyPoints: "", voScript: "", done: {}, step: "s1" }; }
 let video = blankVideo();
 let currentPanel = "setup";
@@ -42,20 +42,67 @@ const esc = s => String(s).replace(/[&<>"']/g,
 /* Shared voice-over-script building blocks — reused by the Setup workflow (buildPrompt1)
    AND the Radar "📝 Script from this video" workflow (js/radar.js), so both produce a
    file with the EXACT same format the recording/editing pipeline depends on. */
-function voSampleBlock() {
-  const samples = settings.samples.map(s => s.trim()).filter(Boolean);
-  return samples.length
-    ? samples.map((s, i) => "SAMPLE " + (i + 1) + ":\n" + s).join("\n\n")
-    : "SAMPLE 1:\n(!! no sample scripts saved yet — add them in the Setup page !!)";
-}
+/* The channel's fixed self-introduction. It is beat 3 of every script, word for
+   word, and it arrives already split into breath-lines so the format rules below
+   never have to re-break it. Three pillars, one ask: it does not grow, and a
+   fourth topic would replace one of the three rather than join them. */
+const CHANNEL_INTRO_LINES = [
+"Hi, I'm Max.",
+"This channel is about finance, self-improvement, and business.",
+"If you're interested, hit subscribe.",
+];
 
+/* The channel voice, stated outright.
+
+   This used to be inferred from pasted sample scripts, which had two problems: a
+   sample teaches delivery but says nothing about STRUCTURE, and "sound like this"
+   drifts a little further on every re-inference. Naming the qualities is shorter
+   and more stable, and it leaves the spine below to own the shape. */
 function voToneBlock() {
   return [
-"--- TONE RULES ---",
-"- Before writing, silently analyze my samples: how they hook in the first seconds, sentence length and rhythm, vocabulary level, how they talk to the viewer, use of questions and repetition for emphasis, how they transition between points, and how they close with a call to action. Mirror ALL of it.",
-"- Write for the ear, not the eye: contractions, direct address (\"you\"), short punchy sentences, concrete everyday examples.",
-"- Stay 100% consistent with the samples' personality. If they are calm and sincere, do not become hype. If they are playful, do not become formal.",
+"--- VOICE ---",
+"- Calm, direct and certain. Never hyped, never a salesman, never a guru. The confidence comes from knowing the subject, not from volume.",
+"- Write for the ear, not the eye: contractions, direct address (\"you\"), short declarative sentences, concrete everyday examples.",
+"- Plain words over impressive ones. If a smart teenager would not know the word, either use a simpler one or explain it in the same breath.",
+"- Specific always beats general. Real numbers, real objects, real situations. Treat every adjective as a specific you have not found yet: 'seventy-one thousand dollars' lands, 'cheap' does not.",
+"- Talk to one person, never to a crowd. No 'guys', no 'everyone', no 'you all'.",
+"- Respect the viewer. Whenever you correct a belief, first explain why holding it was reasonable. Contempt loses the person who holds it, and that is everyone watching.",
+"- No filler openers ('in this video', 'let's dive in', 'without further ado'), and no self-reference: nothing in the script mentions the script, the video or the channel except in the fixed lines given in the story structure above.",
   ];
+}
+
+/* The channel's story structure - the spine every script is built on. Shared by
+   buildPrompt1() and the Radar "script from this video" flow, because a spine
+   only half the scripts follow is not a spine.
+
+   Beats are expressed as SHARES of the word count rather than timecodes: the
+   target length changes from video to video, the proportions do not. */
+function voStructureBlock() {
+  return [
+"--- STORY STRUCTURE (the spine - follow it exactly, in this order) ---",
+"- Every script has these NINE beats, always in this order. The percentages are shares of the TOTAL word count, so scale them to the target length given above.",
+"- CRITICAL: these beat names are architecture, not text. Never write a beat name, heading, number, label or section break into the script itself. The finished script is one continuous spoken piece and the viewer must never hear a seam.",
+"",
+"1. THE ANOMALY - 2%. Open on one concrete fact that sounds slightly wrong, and leave it unexplained. This is the loop the whole video exists to close, so it has to be specific and real: a number, a place, a thing somebody actually did. No greeting, no channel name, no throat-clearing of any kind. The first word of the script is the first word of the story.",
+"",
+"2. WHAT I DID - 3%. The work behind the video, with a NUMBER in it. 'I went through three hundred and forty sales' buys the next ten minutes; 'I did a lot of research' buys nothing. State it plainly and move on - this is credibility, not a boast.",
+"",
+"3. WHO I AM - fixed. Output these three lines EXACTLY as written, word for word, as three consecutive breath-lines, and never repeat this idea anywhere else in the script:",
+"",
+  ].concat(CHANNEL_INTRO_LINES, [
+"",
+"4. THE PROMISE - 3%. What the viewer will be able to DO by the end. State it as a change in THEM, never as a table of contents: 'you will be able to look at any street and tell which houses actually make money' - never 'I will cover five things'. A list of contents is a menu, and a menu invites the viewer to skip ahead to their course.",
+"",
+"5. THE WRONG MODEL - 9%. What almost everybody believes about this topic, stated SYMPATHETICALLY and at its strongest. The gap between this and the truth is the tension carrying the whole video, so make the wrong idea genuinely appealing first. A viewer who feels mocked for believing it leaves; a viewer who feels understood has to know what is actually true.",
+"",
+"6. THE BODY - 60%. Three to five moves, each one revealing that the previous move was incomplete. Move 2 makes move 1 look partial. Move 3 makes the viewer re-see move 1. That escalation is the entire difference between a story and a list: a flat set of parallel points lets the viewer leave after any one of them, because each one finished. Never end a move on a settled full stop - end it on the question the next move answers. Somewhere in here, spend one move on WHY THE MYTH PERSISTS: who benefits from people believing the wrong thing. It is the strongest single move available on this subject matter and it is almost always the one missing.",
+"",
+"7. THE TURN - 9%. Return to the anomaly from beat 1 and answer it completely, now that the viewer has everything needed to understand it. This replaces a recap and must never become one: a recap tells the viewer they have it all and may leave, which is the last thing to say here. Same consolidating job, opposite effect - it pays the opening off instead of releasing the tension.",
+"",
+"8. SO WHAT - 9%. Put it into the viewer's own life, concrete and small enough that they could act on it this week. ONE action, not five. Five actions is zero actions.",
+"",
+"9. THE SEND-OFF - 4%. Do NOT summarise. End by opening a NEW loop: the question this video deliberately left unanswered, the thing that comes next. One or two lines, then stop.",
+  ]);
 }
 
 function voFormatBlock() {
@@ -93,11 +140,7 @@ function buildPrompt1() {
   const points = video.keyPoints.trim() || "(!! fill in the key points above !!)";
   const dur = settings.duration.trim() || "8-12";
   return [
-"You are a professional YouTube scriptwriter. Write a complete, ready-to-record voice-over script for my next video, matching my channel's exact tone and rhythm.",
-"",
-"--- MY SAMPLE SCRIPTS (study these for tone, rhythm and structure only - do NOT reuse their content or examples) ---",
-"",
-voSampleBlock(),
+"You are a professional YouTube scriptwriter. Write a complete, ready-to-record voice-over script for my next video, in my channel's voice and built on my channel's story structure - both are defined in full below.",
 "",
 "--- THE NEW VIDEO ---",
 "",
@@ -110,7 +153,8 @@ points,
 "TARGET LENGTH: " + dur + " minutes.",
 "My voice-over pace is about 155-165 spoken words per minute, so aim for roughly TARGET MINUTES x 160 words. For a range, land near the middle. Count your words before finishing; expand or trim the BODY sections (never the hook, never the ending) to land inside the target range.",
 "",
-  ].concat(voToneBlock(), [""], voFormatBlock(), [""], voOutputBlock()).join("\n");
+  ].concat(voStructureBlock(), [""], voToneBlock(),
+           [""], voFormatBlock(), [""], voOutputBlock()).join("\n");
 }
 
 function buildPrompt2() {
@@ -217,7 +261,7 @@ function queueSettingsSave() {
     try {
       await sb("/" + T_SETTINGS + "?id=eq.1", {
         method: "PATCH",
-        body: JSON.stringify({ samples: settings.samples, duration: settings.duration })
+        body: JSON.stringify({ duration: settings.duration })
       });
       setSettingsStatus("✓ Settings saved to cloud", "ok");
     } catch (e) {
@@ -331,7 +375,7 @@ function refresh() {
   document.querySelectorAll(".navstep").forEach(el => {
     const id = el.dataset.step;
     el.classList.toggle("active", id === currentPanel);
-    const done = id === "setup" ? settings.samples.some(s => s.trim()) : !!video.done[id];
+    const done = id === "setup" ? !!settings.duration.trim() : !!video.done[id];
     el.classList.toggle("done", done && id !== "ref" && id !== "videos");
     const dot = el.querySelector(".dot");
     if (el.classList.contains("done")) dot.textContent = "✓";
@@ -349,12 +393,6 @@ function refresh() {
 
   document.querySelectorAll(".panel").forEach(p =>
     p.classList.toggle("active", p.id === "panel-" + currentPanel));
-
-  const filled = settings.samples.filter(s => s.trim()).length;
-  $("sampleStatus").className = "samplestatus " + (filled >= 2 ? "ok" : "missing");
-  $("sampleStatus").textContent = filled >= 2
-    ? "✓ " + filled + " sample scripts stored — used automatically in Step 1."
-    : "⚠ Add at least 2 sample scripts so the AI can learn your tone.";
 
   $("durationNote").textContent = "Target duration: " + (settings.duration.trim() || "8-12")
     + " minutes — change it in Setup.";
@@ -422,11 +460,6 @@ function bindEvents() {
   document.querySelectorAll("[data-go]").forEach(b =>
     b.addEventListener("click", () => go(b.dataset.go)));
 
-  [["sample1", 0], ["sample2", 1], ["sample3", 2]].forEach(([id, i]) => {
-    $(id).addEventListener("input", () => {
-      settings.samples[i] = $(id).value; queueSettingsSave(); refresh();
-    });
-  });
   $("duration").addEventListener("input", () => {
     settings.duration = $("duration").value; queueSettingsSave(); refresh();
   });
@@ -476,8 +509,6 @@ async function boot() {
   try {
     const rows = await sb("/" + T_SETTINGS + "?id=eq.1");
     if (rows && rows[0]) {
-      settings.samples = Array.isArray(rows[0].samples) ? rows[0].samples : ["", "", ""];
-      while (settings.samples.length < 3) settings.samples.push("");
       settings.duration = rows[0].duration || "8-12";
     }
     setCloudStatus("✓ Cloud connected (YT Automation)", "ok");
@@ -485,9 +516,6 @@ async function boot() {
     console.error(e);
     setCloudStatus("⚠ Can't reach Supabase — check your internet, then reload the page.", "err");
   }
-  $("sample1").value = settings.samples[0];
-  $("sample2").value = settings.samples[1];
-  $("sample3").value = settings.samples[2];
   $("duration").value = settings.duration;
   fillVideoInputs();
   refresh();

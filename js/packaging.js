@@ -25,8 +25,8 @@ function pkgScriptCount() {
 /* ================= packaging prompt builder =================
    Builds a ready-to-paste packaging brief for me to run in a Claude chat myself — no API
    call from this app. Two modes: "continue" carries on the chat that just wrote the
-   script (it still has the script AND my sample scripts in context, so the titles sound
-   most like me), "fresh" embeds the whole script for a new chat — a more neutral judge of
+   script (it still has the script AND my channel's voice and structure rules in context,
+   so the titles sound most like me), "fresh" embeds the whole script for a new chat — a more neutral judge of
    whether a title's promise is really kept, since it did not write the script itself. */
 
 /* The image-prompt scaffolding travels as a fill-in template, and the instructions below
