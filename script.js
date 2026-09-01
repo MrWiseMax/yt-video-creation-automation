@@ -49,7 +49,7 @@ const esc = s => String(s).replace(/[&<>"']/g,
 const CHANNEL_INTRO_LINES = [
 "Hi, I'm Max.",
 "This channel is about finance, self-improvement, and business.",
-"If you're interested, hit subscribe.",
+"You're welcome to subscribe.",
 ];
 
 /* The channel voice, stated outright.
