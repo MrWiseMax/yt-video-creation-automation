@@ -71,38 +71,94 @@ function voToneBlock() {
   ];
 }
 
-/* The channel's story structure - the spine every script is built on. Shared by
-   buildPrompt1() and the Radar "script from this video" flow, because a spine
-   only half the scripts follow is not a spine.
+/* The channel's story structure - the spine every script is built on.
 
-   Beats are expressed as SHARES of the word count rather than timecodes: the
-   target length changes from video to video, the proportions do not. */
+   ONE array, TWO consumers: voStructureBlock() turns it into prompt text for
+   both script builders, and renderSpine() draws it on the Setup page as a
+   reminder. Editing a beat here moves both, which is the whole point - a
+   reminder card that has quietly drifted from the prompt it claims to describe
+   is worse than no card at all.
+
+   `prompt` is what the model reads; `gist` is the one-line version for the card.
+   Shares are of the TOTAL word count, not minutes: the target length changes
+   from video to video, the proportions do not. */
+const STORY_SPINE = [
+  {
+    n: 1, name: "The anomaly", share: "2%",
+    gist: "One concrete fact that sounds slightly wrong, left unexplained. No greeting, no throat-clearing.",
+    prompt: "Open on one concrete fact that sounds slightly wrong, and leave it unexplained. This is the loop the whole video exists to close, so it has to be specific and real: a number, a place, a thing somebody actually did. No greeting, no channel name, no throat-clearing of any kind. The first word of the script is the first word of the story.",
+  },
+  {
+    n: 2, name: "What I did", share: "3%",
+    gist: "The work behind the video, with a number in it. Credibility, not a boast.",
+    prompt: "The work behind the video, with a NUMBER in it. 'I went through three hundred and forty sales' buys the next ten minutes; 'I did a lot of research' buys nothing. State it plainly and move on - this is credibility, not a boast.",
+  },
+  {
+    n: 3, name: "Who I am", share: "fixed",
+    gist: "The self-introduction, word for word, in every video:",
+    prompt: "Output these three lines EXACTLY as written, word for word, as three consecutive breath-lines, and never repeat this idea anywhere else in the script:",
+    lines: CHANNEL_INTRO_LINES,
+  },
+  {
+    n: 4, name: "The promise", share: "3%",
+    gist: "What the viewer will be able to DO by the end - a change in them, never a contents list.",
+    prompt: "What the viewer will be able to DO by the end. State it as a change in THEM, never as a table of contents: 'you will be able to look at any street and tell which houses actually make money' - never 'I will cover five things'. A list of contents is a menu, and a menu invites the viewer to skip ahead to their course.",
+  },
+  {
+    n: 5, name: "The wrong model", share: "9%",
+    gist: "What everybody believes, at its most convincing. This is the tension engine.",
+    prompt: "What almost everybody believes about this topic, stated SYMPATHETICALLY and at its strongest. The gap between this and the truth is the tension carrying the whole video, so make the wrong idea genuinely appealing first. A viewer who feels mocked for believing it leaves; a viewer who feels understood has to know what is actually true.",
+  },
+  {
+    n: 6, name: "The body", share: "60%",
+    gist: "3-5 moves, each revealing the last was incomplete. Spend one on why the myth persists.",
+    prompt: "Three to five moves, each one revealing that the previous move was incomplete. Move 2 makes move 1 look partial. Move 3 makes the viewer re-see move 1. That escalation is the entire difference between a story and a list: a flat set of parallel points lets the viewer leave after any one of them, because each one finished. Never end a move on a settled full stop - end it on the question the next move answers. Somewhere in here, spend one move on WHY THE MYTH PERSISTS: who benefits from people believing the wrong thing. It is the strongest single move available on this subject matter and it is almost always the one missing.",
+  },
+  {
+    n: 7, name: "The turn", share: "9%",
+    gist: "Back to the anomaly, answered in full. Replaces a recap and must never become one.",
+    prompt: "Return to the anomaly from beat 1 and answer it completely, now that the viewer has everything needed to understand it. This replaces a recap and must never become one: a recap tells the viewer they have it all and may leave, which is the last thing to say here. Same consolidating job, opposite effect - it pays the opening off instead of releasing the tension.",
+  },
+  {
+    n: 8, name: "So what", share: "9%",
+    gist: "Into the viewer's own life, small enough to do this week. One action, not five.",
+    prompt: "Put it into the viewer's own life, concrete and small enough that they could act on it this week. ONE action, not five. Five actions is zero actions.",
+  },
+  {
+    n: 9, name: "The send-off", share: "4%",
+    gist: "No summary. Open a new loop - the question this video left unanswered - and stop.",
+    prompt: "Do NOT summarise. End by opening a NEW loop: the question this video deliberately left unanswered, the thing that comes next. One or two lines, then stop.",
+  },
+];
+
 function voStructureBlock() {
-  return [
+  const out = [
 "--- STORY STRUCTURE (the spine - follow it exactly, in this order) ---",
 "- Every script has these NINE beats, always in this order. The percentages are shares of the TOTAL word count, so scale them to the target length given above.",
 "- CRITICAL: these beat names are architecture, not text. Never write a beat name, heading, number, label or section break into the script itself. The finished script is one continuous spoken piece and the viewer must never hear a seam.",
-"",
-"1. THE ANOMALY - 2%. Open on one concrete fact that sounds slightly wrong, and leave it unexplained. This is the loop the whole video exists to close, so it has to be specific and real: a number, a place, a thing somebody actually did. No greeting, no channel name, no throat-clearing of any kind. The first word of the script is the first word of the story.",
-"",
-"2. WHAT I DID - 3%. The work behind the video, with a NUMBER in it. 'I went through three hundred and forty sales' buys the next ten minutes; 'I did a lot of research' buys nothing. State it plainly and move on - this is credibility, not a boast.",
-"",
-"3. WHO I AM - fixed. Output these three lines EXACTLY as written, word for word, as three consecutive breath-lines, and never repeat this idea anywhere else in the script:",
-"",
-  ].concat(CHANNEL_INTRO_LINES, [
-"",
-"4. THE PROMISE - 3%. What the viewer will be able to DO by the end. State it as a change in THEM, never as a table of contents: 'you will be able to look at any street and tell which houses actually make money' - never 'I will cover five things'. A list of contents is a menu, and a menu invites the viewer to skip ahead to their course.",
-"",
-"5. THE WRONG MODEL - 9%. What almost everybody believes about this topic, stated SYMPATHETICALLY and at its strongest. The gap between this and the truth is the tension carrying the whole video, so make the wrong idea genuinely appealing first. A viewer who feels mocked for believing it leaves; a viewer who feels understood has to know what is actually true.",
-"",
-"6. THE BODY - 60%. Three to five moves, each one revealing that the previous move was incomplete. Move 2 makes move 1 look partial. Move 3 makes the viewer re-see move 1. That escalation is the entire difference between a story and a list: a flat set of parallel points lets the viewer leave after any one of them, because each one finished. Never end a move on a settled full stop - end it on the question the next move answers. Somewhere in here, spend one move on WHY THE MYTH PERSISTS: who benefits from people believing the wrong thing. It is the strongest single move available on this subject matter and it is almost always the one missing.",
-"",
-"7. THE TURN - 9%. Return to the anomaly from beat 1 and answer it completely, now that the viewer has everything needed to understand it. This replaces a recap and must never become one: a recap tells the viewer they have it all and may leave, which is the last thing to say here. Same consolidating job, opposite effect - it pays the opening off instead of releasing the tension.",
-"",
-"8. SO WHAT - 9%. Put it into the viewer's own life, concrete and small enough that they could act on it this week. ONE action, not five. Five actions is zero actions.",
-"",
-"9. THE SEND-OFF - 4%. Do NOT summarise. End by opening a NEW loop: the question this video deliberately left unanswered, the thing that comes next. One or two lines, then stop.",
-  ]);
+  ];
+  STORY_SPINE.forEach(b => {
+    out.push("", b.n + ". " + b.name.toUpperCase() + " - " + b.share + ". " + b.prompt);
+    if (b.lines) out.push.apply(out, [""].concat(b.lines));
+  });
+  return out;
+}
+
+/* The Setup page's reminder card. Reads the same array the prompt is built from,
+   so it cannot describe a spine the prompt is not actually asking for. */
+function renderSpine() {
+  const box = $("spineList");
+  if (!box) return;
+  box.innerHTML = STORY_SPINE.map(b =>
+    "<li class='beat'>" +
+      "<span class='beat-n'>" + b.n + "</span>" +
+      "<div class='beat-body'>" +
+        "<div class='beat-head'><b>" + esc(b.name) + "</b>" +
+          "<span class='beat-share'>" + esc(b.share) + "</span></div>" +
+        "<div class='beat-gist'>" + esc(b.gist) + "</div>" +
+        (b.lines ? "<div class='beat-lines'>" + esc(b.lines.join("\n")) + "</div>" : "") +
+      "</div>" +
+    "</li>").join("");
 }
 
 function voFormatBlock() {
@@ -505,6 +561,7 @@ function bindEvents() {
 /* ================= boot ================= */
 async function boot() {
   bindEvents();
+  renderSpine();
   refresh();
   try {
     const rows = await sb("/" + T_SETTINGS + "?id=eq.1");

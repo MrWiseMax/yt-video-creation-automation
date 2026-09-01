@@ -64,13 +64,21 @@
         <label for="duration">Target video length (minutes) — used by every new script</label>
         <input type="text" id="duration" placeholder="e.g. 8-12  or  10" style="max-width:180px;">
         <div class="settingsstatus" id="settingsStatus"></div>
+
+        <div class="spine-head">
+          <h3>The story spine</h3>
+          <span class="spine-tag">in every script prompt</span>
+        </div>
+        <p class="spine-lede">Every script prompt asks for these nine beats, in this order. The
+        percentages are shares of the total word count, so they scale to whatever duration you set
+        above. The beats are never written into the script as headings — they are the shape
+        underneath it.</p>
+        <ol class="spine" id="spineList"></ol>
       </div>
-      <div class="note"><b>The story spine.</b> Every script prompt now asks for the same nine beats, in
-      order: the anomaly → what I did → who I am → the promise → the wrong model → the body
-      (3–5 escalating moves) → the turn → so what → the send-off. The beats are never written into the
-      script as headings — they are the shape underneath it. To change the spine or the fixed
-      self-introduction, edit <span class="filename">voStructureBlock()</span> in
-      <span class="filename">script.js</span>.</div>
+      <div class="note"><b>Changing the spine.</b> This card is drawn from the same
+      <span class="filename">STORY_SPINE</span> array that builds the prompt, in
+      <span class="filename">script.js</span> — edit a beat there and both move together. The fixed
+      self-introduction lives beside it in <span class="filename">CHANNEL_INTRO_LINES</span>.</div>
     </section>
 
     <!-- ============ MY VIDEOS ============ -->
