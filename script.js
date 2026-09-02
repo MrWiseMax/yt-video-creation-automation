@@ -52,22 +52,43 @@ const CHANNEL_INTRO_LINES = [
 "You're welcome to subscribe.",
 ];
 
+/* ...and the sign-off it always closes on, likewise word for word and already
+   broken into breath-lines. The friendly question that leads into it changes
+   every video; these three lines never do. */
+const CHANNEL_SIGNOFF_LINES = [
+"Like this video to support me keeping this up,",
+"and remember,",
+"I will always be cheering you on from afar.",
+];
+
 /* The channel voice, stated outright.
 
-   This used to be inferred from pasted sample scripts, which had two problems: a
-   sample teaches delivery but says nothing about STRUCTURE, and "sound like this"
-   drifts a little further on every re-inference. Naming the qualities is shorter
-   and more stable, and it leaves the spine below to own the shape. */
-function voToneBlock() {
+   Split in two on purpose. voVoiceBlock() is the WORDS - register, address,
+   stance - and goes into every prompt without exception. voToneBlock() is the
+   DELIVERY, the energy behind those words, and it is the one thing another
+   channel can supply instead: the "borrow the reference's tone" path swaps it
+   for voToneBlendBlock(). Before the split the whole lot was swapped out
+   together, which quietly dropped the word rules on that path and left the
+   blend block referring to rules that were not in the prompt. */
+function voVoiceBlock() {
   return [
-"--- VOICE ---",
-"- Calm, direct and certain. Never hyped, never a salesman, never a guru. The confidence comes from knowing the subject, not from volume.",
-"- Write for the ear, not the eye: contractions, direct address (\"you\"), short declarative sentences, concrete everyday examples.",
-"- Plain words over impressive ones. If a smart teenager would not know the word, either use a simpler one or explain it in the same breath.",
+"--- VOICE: THE WORDS (applies to every script, no exceptions) ---",
+"- CONTRACTIONS, everywhere a person talking would use one: it's, that's, there's, here's, you're, you'll, don't, doesn't, didn't, can't, won't, isn't, aren't, wasn't, they're, we're, I'm, I've, that'll. This is the single biggest thing separating a script that sounds SPOKEN from one that sounds READ. Writing 'it is not' where a person would say 'it isn't', or 'you cannot' for 'you can't', turns the whole video into an essay being performed out loud. Go through the finished script and check this specifically before you output it.",
+"- Use the words people SAY to their friends, not the words people write. This is a register rule, not a difficulty rule - the written word is usually perfectly easy to understand and still wrong. 'Plenty of people' is not hard, but nobody says it across a table; 'a lot of people' is what they say. Swap the written half of each pair: plenty of / numerous / a great deal of -> a lot of, the majority of -> most, a variety of -> all kinds of, individuals -> people, utilise -> use, obtain / acquire -> get, purchase -> buy, require -> need, attempt -> try, demonstrate -> show, approximately -> about, additionally / furthermore / moreover -> and, however / nevertheless -> but, therefore / thus / hence -> so, in order to -> to, prior to -> before, sufficient -> enough, commence / initiate -> start, assist -> help, regarding / concerning -> about, is able to -> can, is unable to -> can't, it is imperative -> you have to.",
+"- The test for every single line: would you say it out loud to a friend across a table? If it sounds like something being read rather than said, rewrite it until it does not.",
+"- Talk to ONE person, never to a crowd. No 'guys', no 'everyone', no 'you all', no 'folks'.",
 "- Specific always beats general. Real numbers, real objects, real situations. Treat every adjective as a specific you have not found yet: 'seventy-one thousand dollars' lands, 'cheap' does not.",
-"- Talk to one person, never to a crowd. No 'guys', no 'everyone', no 'you all'.",
+"- Short sentences. A line that needs two commas to stay upright usually wanted to be two lines.",
 "- Respect the viewer. Whenever you correct a belief, first explain why holding it was reasonable. Contempt loses the person who holds it, and that is everyone watching.",
 "- No filler openers ('in this video', 'let's dive in', 'without further ado'), and no self-reference: nothing in the script mentions the script, the video or the channel except in the fixed lines given in the story structure above.",
+  ];
+}
+
+function voToneBlock() {
+  return [
+"--- VOICE: THE DELIVERY ---",
+"- Calm, direct and certain. Never hyped, never a salesman, never a guru. The confidence comes from knowing the subject, not from volume.",
+"- Let the facts carry it. No exclamation marks, no hard sell, no manufactured urgency ('you NEED to hear this', 'this changes everything'). If a point is genuinely striking, state it plainly and let the viewer be the one who reacts.",
   ];
 }
 
@@ -126,8 +147,9 @@ const STORY_SPINE = [
   },
   {
     n: 9, name: "The send-off", share: "4%",
-    gist: "No summary. Open a new loop - the question this video left unanswered - and stop.",
-    prompt: "Do NOT summarise. End by opening a NEW loop: the question this video deliberately left unanswered, the thing that comes next. One or two lines, then stop.",
+    gist: "No summary. A new loop, then a friendly question for the comments, then the fixed sign-off.",
+    prompt: "Three parts, in this order, and nothing at all after them. FIRST, do NOT summarise - open a NEW loop instead: the hole in what you just taught, the thing this video deliberately left unanswered. One or two lines. SECOND, ask the viewer ONE warm, easy question about their own life and point it at the comments. It has to be answerable in a single sentence by anybody who watched: a question that needs homework gets no replies, and a question with a right answer gets none either. Ask about their experience, never their knowledge. THIRD, close on these three lines EXACTLY as written, word for word, as three consecutive breath-lines. They end every video and they never change:",
+    lines: CHANNEL_SIGNOFF_LINES,
   },
 ];
 
@@ -209,7 +231,7 @@ points,
 "TARGET LENGTH: " + dur + " minutes.",
 "My voice-over pace is about 155-165 spoken words per minute, so aim for roughly TARGET MINUTES x 160 words. For a range, land near the middle. Count your words before finishing; expand or trim the BODY sections (never the hook, never the ending) to land inside the target range.",
 "",
-  ].concat(voStructureBlock(), [""], voToneBlock(),
+  ].concat(voStructureBlock(), [""], voVoiceBlock(), [""], voToneBlock(),
            [""], voFormatBlock(), [""], voOutputBlock()).join("\n");
 }
 
