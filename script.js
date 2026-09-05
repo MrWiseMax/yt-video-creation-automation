@@ -61,6 +61,12 @@ const CHANNEL_SIGNOFF_LINES = [
 "I will always be cheering you on from afar.",
 ];
 
+/* The line beat 4 always opens on, before the promise itself. Its own
+   breath-line, and the reason it is pinned rather than left to the model is
+   that the model kept trimming it to "By the end of this" — see the
+   self-reference rule below, which used to require exactly that. */
+const CHANNEL_PROMISE_OPENER = "By the end of this video,";
+
 /* The channel voice, stated outright.
 
    Split in two on purpose. voVoiceBlock() is the WORDS - register, address,
@@ -80,7 +86,8 @@ function voVoiceBlock() {
 "- Specific always beats general. Real numbers, real objects, real situations. Treat every adjective as a specific you have not found yet: 'seventy-one thousand dollars' lands, 'cheap' does not.",
 "- Short sentences. A line that needs two commas to stay upright usually wanted to be two lines.",
 "- Respect the viewer. Whenever you correct a belief, first explain why holding it was reasonable. Contempt loses the person who holds it, and that is everyone watching.",
-"- No filler openers ('in this video', 'let's dive in', 'without further ado'), and no self-reference: nothing in the script mentions the script, the video or the channel except in the fixed lines given in the story structure above.",
+"- No filler openers, and never announce what the video is about to do: 'in this video I'll cover three things', 'let's dive in', 'without further ado', 'before we get started'. Start the content instead.",
+"- No self-reference beyond that: nothing in the script mentions the script, the video or the channel, EXCEPT the three fixed lines the story structure above pins — the self-introduction, the promise opener, and the sign-off. Those three are deliberate, and they are never trimmed, shortened or reworded to satisfy this rule. Specifically: 'By the end of this video,' keeps the word 'video'. Cutting it back to 'By the end of this' is the exact mistake this note exists to stop.",
   ];
 }
 
@@ -153,8 +160,9 @@ const STORY_SPINE = [
   },
   {
     n: 4, name: "The promise", share: "3%",
-    gist: "What the viewer will be able to DO by the end - a change in them, never a contents list.",
-    prompt: "What the viewer will be able to DO by the end. State it as a change in THEM, never as a table of contents: 'you will be able to look at any street and tell which houses actually make money' - never 'I will cover five things'. A list of contents is a menu, and a menu invites the viewer to skip ahead to their course.",
+    gist: "What the viewer will be able to DO by the end - a change in them, never a contents list. Always opens on:",
+    prompt: "What the viewer will be able to DO by the end. State it as a change in THEM, never as a table of contents: 'you will be able to look at any street and tell which houses actually make money' - never 'I will cover five things'. A list of contents is a menu, and a menu invites the viewer to skip ahead to their course. This beat ALWAYS opens on the following exact line, word for word, as its own breath-line, with the promise starting on the line after it:",
+    lines: [CHANNEL_PROMISE_OPENER],
   },
   {
     n: 5, name: "The wrong model", share: "9%",
