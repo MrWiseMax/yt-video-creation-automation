@@ -92,6 +92,37 @@ function voToneBlock() {
   ];
 }
 
+/* Two recurring devices, kept in their own block rather than folded into the
+   voice rules above.
+
+   A technique to DEPLOY is a different kind of instruction from a rule to obey,
+   and the two do not survive being listed together: "contractions" spent a
+   while buried mid-sentence in the voice list and the model walked straight
+   past it every time. Both of these also need a RATE, which a rule does not -
+   used once they do nothing, used every minute they become a tic, and the
+   whole value sits in the band between. */
+function voDevicesBlock() {
+  return [
+"--- MY TWO SIGNATURE MOVES (use both, at the rates given) ---",
+"",
+"1. MAKE THEM PICTURE IT - about 4 to 8 times across the script, roughly once per move of the body.",
+"- Hand the viewer a scene to run in their head instead of a fact to file away. The word to reach for is IMAGINE, and it should be doing real work every time it appears.",
+"- What follows it has to be CONCRETE and about THEM. 'Imagine you open your banking app and the number is nine hundred more than you guessed' works. 'Imagine the power of compound interest' does not - that is an abstraction with the word imagine stapled to the front, and it teaches the viewer to stop listening when the word arrives.",
+"- Vary the opener so it never turns into a metronome. 'Imagine' is the main one and should be the most common; rotate in 'picture this', 'say you...', 'think about somebody who...', 'you know that feeling when...'. Two picture-moments close together must never start the same way.",
+"- Spend them where a point is hard to FEEL: a number, a mechanism, a length of time. A scene does what a statistic cannot. Do not open one on something the viewer can already see plainly.",
+"",
+"2. ANSWER MYSELF OUT LOUD - two or three times in the whole script, never more.",
+"- The narration breaks and the viewer's own voice comes through, spoken by me. It is the thought they are already having, said out loud a second before they could say it. That is why it lands: it proves somebody thought about them while writing this.",
+"- There are two kinds and they go in different places.",
+"- THE INTERRUPTION goes at a turn in the argument, where the viewer needs to know what happens next - between moves of the body, or just before the 'so what'. It says my name: 'Okay Max, then what should I do first?' or 'Alright Max, so what does that actually change?' Then I answer it, and my answer IS the next section.",
+"- THE REACTION goes immediately after a reveal that genuinely surprises. It does not say my name: 'That... sounds unbelievable.' / 'I can't believe this.' / 'I really needed to hear this a long time ago.' / 'Okay, that one hurts.' Then I carry straight on.",
+"- Keep them SHORT - one breath, under about eight words. Length is the whole thing that makes an interruption read as an interruption rather than as more narration.",
+"- No quotation marks, no speaker labels, no 'you might be thinking'. The line simply arrives on its own line and the words alone have to make the switch obvious. I read BOTH voices out loud in one take, so anything that needs punctuation or a label to be understood will not survive being spoken.",
+"- Saying my own name is the one place the script addresses me by name, and it is deliberate: in that line it is the viewer talking, not me narrating.",
+"- Never stack two together, and never use one where nothing surprising just happened. Two or three that land beat six that are decoration - and six is where this stops being a voice and starts being a format.",
+  ];
+}
+
 /* The channel's story structure - the spine every script is built on.
 
    ONE array, TWO consumers: voStructureBlock() turns it into prompt text for
@@ -231,8 +262,9 @@ points,
 "TARGET LENGTH: " + dur + " minutes.",
 "My voice-over pace is about 155-165 spoken words per minute, so aim for roughly TARGET MINUTES x 160 words. For a range, land near the middle. Count your words before finishing; expand or trim the BODY sections (never the hook, never the ending) to land inside the target range.",
 "",
-  ].concat(voStructureBlock(), [""], voVoiceBlock(), [""], voToneBlock(),
-           [""], voFormatBlock(), [""], voOutputBlock()).join("\n");
+  ].concat(voStructureBlock(), [""], voVoiceBlock(), [""], voDevicesBlock(),
+           [""], voToneBlock(), [""], voFormatBlock(),
+           [""], voOutputBlock()).join("\n");
 }
 
 function buildPrompt2() {

@@ -610,7 +610,7 @@ function voToneBlendBlock(haveTranscript) {
 "- Aim for roughly 75% the reference video's tone and delivery, 25% mine. The reference out-performs my own channel at this, so its WAY OF TALKING is deliberately the thing being taken. Quietly drifting back to a neutral delivery is the failure mode here, not the safe option.",
 "- Take from the REFERENCE (the 75%): sentence rhythm and length, energy and pace, how it moves between points, its use of questions, repetition, pauses and emphasis, how direct and confident it is with the viewer, and the shape of how it lands a point.",
 "- Keep from MY VOICE (the 25%): who is speaking. The kind of everyday examples, how sincere rather than hyped it stays, and what the viewer is left feeling. Land near the reference's energy, but never somewhere my own subscribers would not recognise me.",
-"- THE WORD RULES ABOVE ARE NOT PART OF THE 75%. Contractions, spoken-not-written vocabulary, talking to one person, short sentences - all of that still binds in full, whatever the reference does. Borrowing a delivery never licenses writing the way the reference writes; it is how the lines are DELIVERED that is being taken, not which words they are built from.",
+"- THE WORD RULES AND THE SIGNATURE MOVES ABOVE ARE NOT PART OF THE 75%. Contractions, spoken-not-written vocabulary, talking to one person, short sentences, making the viewer picture things, answering myself out loud - all of that still binds in full, whatever the reference does, and at the rates given rather than at whatever rate the reference happens to use. Borrowing a delivery never licenses writing the way the reference writes; it is how the lines are DELIVERED that is being taken, not which words they are built from.",
 "- STRUCTURE IS NOT BORROWED AT ALL. The story structure below is mine and is followed exactly, whatever shape the reference video happens to have. Delivery is the only thing being taken from it.",
 "- This is about DELIVERY ONLY. Borrowing how the reference talks is the instruction; borrowing what it says is never included in it. Its wording, sentences, points, examples, analogies, jokes and statistics remain off-limits exactly as the reference rules below state.",
 "- Write for the ear, not the eye: contractions, direct address (\"you\"), short punchy sentences, concrete everyday examples.",
@@ -768,6 +768,7 @@ topic,
     .concat([""], lengthBlock)
     .concat([""], voStructureBlock())
     .concat([""], voVoiceBlock())
+    .concat([""], voDevicesBlock())
     .concat([""], opts.tone ? voToneBlendBlock(!!tr) : voToneBlock(),
             [""], voFormatBlock(), [""], voOutputBlock())
     .join("\n");
