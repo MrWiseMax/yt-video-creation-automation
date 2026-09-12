@@ -1,5 +1,5 @@
 "use strict";
-/* Shared plumbing for the Studio tabs (Radar / Packaging / Autopsy).
+/* Shared plumbing for the Studio tabs (Radar / Packaging).
    Relies on globals from script.js: sb(), toast(), esc(), $ */
 
 const STUDIO_FN_URL = "https://jgctukihjumyznviyavy.supabase.co/functions/v1";
@@ -8,8 +8,7 @@ const studio = {
   settings: null,   // studio_settings row
   channels: [],     // outlier_radar_channels
   radarVideos: [],  // outlier_radar_videos
-  myVideos: [],     // video_autopsy_videos
-  reports: [],      // video_autopsy_reports
+  myVideos: [],     // my own uploads - the Packaging Lab's voice signal
 };
 
 function studioAppKey() { return localStorage.getItem("studio_app_key") || ""; }
@@ -65,6 +64,19 @@ async function studioLoadSettings() {
   studio.settings = (rows && rows[0]) || {};
 }
 
+/* My own uploads, for studioMyTitlesBlock() below. A plain PostgREST read of rows the
+   backend's YouTube-only collector already wrote - no edge function, no Claude, no cost.
+   Silent on failure: the Packaging Lab degrades to a prompt without my titles, which is
+   worth far more than a toast on every page load when the internet is down. */
+async function studioLoadMyVideos() {
+  if (!studio.settings || !studio.settings.my_channel_id) return;
+  try {
+    studio.myVideos = await sb("/video_autopsy_videos?select=*&order=published_at.desc&limit=50") || [];
+  } catch (e) {
+    console.error(e);
+  }
+}
+
 /* ---------- shared prompt context blocks ----------
    The Studio tabs build their AI prompts here in the browser so I can run them in the
    same Claude chat that wrote the script — no API credits, and that chat still holds the
@@ -104,10 +116,10 @@ function studioOutlierBlock(limit, days) {
     ((chanById[v.channel_id] || {}).title || "?") + ")").join("\n");
 }
 
-/* Boot all three tabs once the page (and script.js) is ready. */
+/* Boot both Studio tabs once the page (and script.js) is ready. */
 window.addEventListener("load", async () => {
   try { await studioLoadSettings(); } catch (e) { console.error(e); }
+  await studioLoadMyVideos();
   radarInit();
   packagingInit();
-  autopsyInit();
 });

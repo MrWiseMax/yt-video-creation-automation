@@ -13,7 +13,6 @@
   <span class="toptab-sep"></span>
   <button class="toptab" data-tab="radar">📡 Outlier Radar</button>
   <button class="toptab" data-tab="packaging">🎯 Packaging Lab</button>
-  <button class="toptab" data-tab="autopsy">🔬 Video Autopsy</button>
 </div>
 
 <!-- ======================= TAB: CREATE VIDEO ======================= -->
@@ -454,7 +453,7 @@
       <h3>Studio settings</h3>
       <label>App key <span class="lbl-note">(paste once — stored only in this browser)</span></label>
       <input type="password" id="stAppKey" placeholder="paste the studio app key" autocomplete="off">
-      <label>My channel <span class="lbl-note">(link or @handle — powers Packaging Lab &amp; Video Autopsy)</span></label>
+      <label>My channel <span class="lbl-note">(link or @handle — powers Packaging Lab)</span></label>
       <div class="inline"><input type="text" id="stMyChannel" placeholder="e.g. https://youtube.com/@yourchannel"><button class="btn" id="stSetChannelBtn">Set</button></div>
       <div class="settingsstatus" id="stMyChannelStatus"></div>
       <label>Niche description <span class="lbl-note">(included in every AI analysis)</span></label>
@@ -556,29 +555,10 @@
   </main>
 </div>
 
-<!-- ======================= TAB: VIDEO AUTOPSY ======================= -->
-<div class="tabpanel" id="tab-autopsy">
-  <main class="studiopage">
-    <div class="pagehead">
-      <div>
-        <span class="step-tag">Learn · why it performed</span>
-        <h2>🔬 Video Autopsy</h2>
-        <p class="lede">Automatic post-mortems on your own uploads at <b>48 hours</b> and <b>14 days</b>, plus
-        on-demand deep dives. Each report diagnoses topic → packaging → hook → retention → engagement and tells
-        you what to change next time.</p>
-      </div>
-      <div class="pageactions"><button class="btn secondary" id="autopsyRefreshBtn">↻ Refresh list</button></div>
-    </div>
-    <div id="autopsyIntro"></div>
-    <div id="autopsyList"></div>
-  </main>
-</div>
-
 <div id="toast">Copied ✓</div>
 <script src="script.js"></script>
 <script src="js/studio-shared.js"></script>
 <script src="js/radar.js"></script>
 <script src="js/packaging.js"></script>
-<script src="js/autopsy.js"></script>
 </body>
 </html>

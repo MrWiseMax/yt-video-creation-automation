@@ -98,7 +98,7 @@ async function testStudioConnection() {
     el.textContent = line;
     /* The OAuth ✓ above only means the three secrets exist — it says nothing about the
        token working. A token minted on the wrong Google account, or expired, still shows
-       ✓ here and then silently becomes "no retention data" inside an autopsy report. So
+       ✓ here and then fails at the moment something actually asks for retention data. So
        actually call the API. No Claude call, so this stays free to run. */
     if (r.analytics_oauth) {
       el.textContent = line + " · checking Analytics…";
@@ -131,8 +131,8 @@ async function setMyChannel() {
     $("stMyChannelStatus").textContent = "Current channel: " + r.channel.title +
       " — " + r.videos_imported + " videos imported";
     await studioLoadSettings();
-    toast("Channel set ✓ — Autopsy tab is now live");
-    autopsyLoad();
+    toast("Channel set ✓ — the Packaging Lab now knows my titles");
+    studioLoadMyVideos();
   } catch (e) {
     toast("Failed: " + e.message, true);
   }

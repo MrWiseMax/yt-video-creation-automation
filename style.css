@@ -141,7 +141,7 @@ table.ref td:first-child{white-space:nowrap;}
 
 @media (max-width:900px){ .app{flex-direction:column;} aside{width:100%; height:auto; position:static;} main{padding:24px 18px 60px;} }
 
-/* ================= YT Studio tabs (Radar / Packaging / Autopsy) ================= */
+/* ================= YT Studio tabs (Radar / Packaging) ================= */
 .toptab-sep{width:1px; height:26px; background:var(--border); margin:0 6px; flex:none;}
 .studiopage{max-width:1080px; margin:0 auto; padding:38px 26px 90px;}
 .pagehead{display:flex; justify-content:space-between; align-items:flex-start; gap:18px; flex-wrap:wrap;}
@@ -244,30 +244,6 @@ select:focus{outline:none; border-color:var(--accent-dim);}
 .prevcard b{display:block; color:#fff; font-size:13.5px; line-height:1.35; margin-top:7px;}
 .prevcard span{color:var(--muted); font-size:12px;}
 
-/* autopsy */
-.arow{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:12px 14px; margin-bottom:10px;}
-.arowhead{display:flex; gap:14px; align-items:flex-start;}
-.abadges{display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;}
-.abadge{font-size:11px; font-weight:700; border-radius:6px; padding:2px 8px; background:var(--panel2);
-  border:1px solid var(--border); color:var(--muted);}
-.abadge.have{color:var(--accent); border-color:var(--accent-dim);}
-.reportbox{background:var(--code-bg); border:1px solid var(--border); border-radius:9px; padding:14px 16px; margin-top:12px;}
-.rephead{display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:8px;}
-.repverdict{font-size:15px; font-weight:700; color:#fff;}
-.metricgrid{display:flex; flex-wrap:wrap; gap:8px; margin:10px 0;}
-.metric{background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:7px 11px; font-size:12px; color:var(--muted);}
-.metric b{display:block; font-size:14.5px; color:var(--text);}
-.diagrow{display:flex; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px; flex-wrap:wrap;}
-.diagrow:last-child{border-bottom:none;}
-.dstat{min-width:86px; font-weight:800; text-transform:uppercase; font-size:11px; padding-top:2px;}
-.dstat.good{color:var(--accent);}
-.dstat.weak{color:var(--danger);}
-.dstat.unknown{color:var(--muted);}
-.diagrow .dbody{flex:1; min-width:220px;}
-.diagrow .dbody b{color:#fff;}
-.diagrow .dbody .fix{color:#ffd98f;}
-.runform{margin-top:12px; border-top:1px dashed var(--border); padding-top:12px;}
-.runform .inline input{max-width:170px;}
 @media (max-width:700px){ .ritem{flex-wrap:wrap;} .rthumb{width:100%; min-width:0;} .rside{flex-direction:row; width:100%; justify-content:space-between;} }
 
 /* ---------- the story spine (Setup) ---------- */
