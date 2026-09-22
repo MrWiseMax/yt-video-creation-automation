@@ -142,8 +142,18 @@
       <span class="step-tag">Step 2 · AI chat</span>
       <h2>Voice-over script → scene prompts</h2>
       <p class="lede">Paste the text of your finished <span class="filename">voice-over-script.txt</span> below.
-      Every <b>two consecutive breath-lines become one image scene</b>, roughly halving the number of images
-      you need to generate. The app checks it and builds the full scene-prompts prompt for you.</p>
+      With the style picked here, <span id="lpsLede"></span>. The app checks it and builds the full
+      scene-prompts prompt for you.</p>
+
+      <div class="card">
+        <label>Image style</label>
+        <div class="seg" id="lpsSwitch">
+          <button type="button" data-lps="2"><b>2 lines per image</b><span>the default · half the images</span></button>
+          <button type="button" data-lps="1"><b>1 line per image</b><span>short videos · faster pace</span></button>
+        </div>
+        <p class="seghint">Saved with this video. <span class="filename">pipeline.py</span> works out which style the
+        scene file uses on its own — nothing to change later.</p>
+      </div>
 
       <div class="card">
         <label for="voScript">Contents of voice-over-script.txt</label>
@@ -163,7 +173,7 @@
         <ol class="instructions">
           <li>Paste the prompt into the AI chat.</li>
           <li>It first answers <span class="filename">TOTAL SCENES: N</span> — check N matches the <b>scenes / images</b>
-              count shown above (about half your line count).</li>
+              count shown above (<span id="lpsHint">about half your line count</span>).</li>
           <li>It then goes straight to building the file (no scene list printed in the chat) — for a long script this
               may take a while to finish.</li>
           <li>It should hand you a downloadable <span class="filename">original-scenes-prompts.txt</span>
@@ -401,7 +411,7 @@
       </div>
       <div class="card">
         <table class="ref">
-          <tr><td><span class="filename">voice-over-script.txt</span></td><td>Your script, one breath per line. You read this when recording. Every two consecutive lines become one image scene. <i>(Step 1)</i></td></tr>
+          <tr><td><span class="filename">voice-over-script.txt</span></td><td>Your script, one breath per line. You read this when recording. Every two consecutive lines become one image scene — or every line, if Step 2 is set to 1 line per image. <i>(Step 1)</i></td></tr>
           <tr><td><span class="filename">original-scenes-prompts.txt</span></td><td>SCENE N + exact sentence + image prompt. Single source of truth for images, renaming and matching. <i>(Step 2)</i></td></tr>
           <tr><td><span class="filename">flow-ai-scene-prompts.txt</span></td><td>Prompts only, numbered 001:, 002: … and blank-line separated — feed to Flow. Auto-generated. <i>(Step 3)</i></td></tr>
           <tr><td><span class="filename">Scene\</span></td><td>The images. Downloaded raw (1.png, 1 (1).jpg…), renamed to "001 - sentence.jpg" by the build. <i>(Steps 4, 7)</i></td></tr>

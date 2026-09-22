@@ -27,7 +27,9 @@ async function sb(path, opts = {}) {
 
 /* ================= state (in memory — the cloud is the storage) ================= */
 let settings = { duration: "8-12" };
-function blankVideo() { return { id: null, title: "", keyPoints: "", voScript: "", done: {}, step: "s1" }; }
+// linesPerScene: how many breath-lines share one image. 2 = the default (half the images);
+// 1 = an image per line, for short videos that need to move faster. Saved per video.
+function blankVideo() { return { id: null, title: "", keyPoints: "", voScript: "", done: {}, step: "s1", linesPerScene: 2 }; }
 let video = blankVideo();
 let currentPanel = "setup";
 let dirty = false;
@@ -277,19 +279,28 @@ points,
 
 function buildPrompt2() {
   const script = video.voScript.trim() || "(!! paste your voice-over script above !!)";
+  // The two image styles share every rule below; only the grouping wording and the
+  // worked example differ. Keep the 2-line text exactly as it was - it is the tuned default.
+  const one = video.linesPerScene === 1;
   return [
-"You are creating image-generation prompts for a YouTube video. The script below is split into short breath-lines. Group the lines into scenes of EXACTLY TWO CONSECUTIVE LINES each - one scene = one image = two breath-lines combined. If the script has an odd number of lines, the LAST scene may contain just the final single line. Do not merge non-consecutive lines, do not split a pair of lines across two scenes, do not skip lines, and never reword a line.",
+one
+? "You are creating image-generation prompts for a YouTube video. The script below is split into short breath-lines. EVERY LINE IS ITS OWN SCENE - one scene = one image = one breath-line. Never combine two lines into one scene, never split a line across two scenes, do not skip lines, and never reword a line."
+: "You are creating image-generation prompts for a YouTube video. The script below is split into short breath-lines. Group the lines into scenes of EXACTLY TWO CONSECUTIVE LINES each - one scene = one image = two breath-lines combined. If the script has an odd number of lines, the LAST scene may contain just the final single line. Do not merge non-consecutive lines, do not split a pair of lines across two scenes, do not skip lines, and never reword a line.",
 "",
 "--- CHARACTER & STYLE (applies to every prompt) ---",
 "- Every prompt starts with: \"Use the character from the uploaded image reference.\" Then describe this scene.",
-"- In each prompt describe: the character's action, pose and expression that visually acts out BOTH lines of the scene together as one moment; the setting; 3-5 concrete environment details; and the overall energy in a short closing phrase.",
+one
+? "- In each prompt describe: the character's action, pose and expression that visually acts out the scene's line as one clear moment; the setting; 3-5 concrete environment details; and the overall energy in a short closing phrase."
+: "- In each prompt describe: the character's action, pose and expression that visually acts out BOTH lines of the scene together as one moment; the setting; 3-5 concrete environment details; and the overall energy in a short closing phrase.",
 "- Grounded, relatable body language - never exaggerated or slapstick. Never describe the character, the other people or the setting as \"realistic\" or photorealistic, and never write toward photoreal rendering, photography, a cinematic film still or a 3D render - keep the established illustrated character look. No glow.",
 "- THE WHOLE FRAME IS DRAWN, not just the character. The setting, buildings, streets, rooms, furniture and props are all flat 2D illustration in the same style, line weight and colouring as the character reference. Never a photographic background with a drawn character placed on top of it - that mismatch is the single worst failure here.",
 "- THE ENVIRONMENT IS FULLY COLOURED, exactly as solidly as the character is. Name real colours for the surfaces and the objects in the scene - wood browns, painted walls, coloured packaging, metal greys, tiled floors, whatever that place actually contains. A washed-out beige, sepia, greyscale or near-monochrome background is a FAILURE, and so is a setting drawn as pale outlines sitting behind a fully coloured character. If the character is the only thing in the frame carrying real colour, the scene is wrong.",
 "- FURNISH THE PLACE so it reads as somewhere real and lived-in, not a stage. Name the location, then the specific things that belong in it: furniture, tools, jars and boxes with coloured labels, plants, appliances, signage, clutter on a shelf. Concrete named objects beat vague phrases like \"a cozy room\" every time - they are what makes a scene look designed rather than empty.",
-"- A PLAIN WHITE OR EMPTY BACKGROUND is allowed ONLY when the two lines are genuinely about no place at all - a pure abstraction with nothing around it. That is rare, a handful of scenes at most in a whole video. If the lines could happen anywhere real - a kitchen, a street, a shop, an office, a garage - put the character in that place and furnish it as above.",
-"- NEVER describe lighting mood or quality, in any form. This is banned: \"soft afternoon light\", \"warm late-afternoon lighting\", \"warm golden light\", \"soft golden light\", \"warm morning window light\", \"light from a window\", \"sunlit kitchen\", or any other \"[mood] light/lighting\" or \"sunlit ___\" phrase. Do not swap in a different lighting descriptor either - just leave lighting out completely. This bans LIGHTING, not colour: the scene is still fully and richly coloured, it simply is not lit from anywhere in particular. Let the action, pose and setting alone make the two lines' meaning clear.",
-"- Favor environment variety scene-to-scene so the setting actually matches what THIS scene's two lines are about, instead of defaulting to the same room/background out of habit. Only keep the exact same setting as the previous scene when the two lines are clearly a continuous moment in that same place; otherwise transition to a new, ordinary, everyday location (a different room, indoors vs outdoors, a different spot in the same space) that fits the new lines.",
+"- A PLAIN WHITE OR EMPTY BACKGROUND is allowed ONLY when " + (one ? "the line is" : "the two lines are") + " genuinely about no place at all - a pure abstraction with nothing around it. That is rare, a handful of scenes at most in a whole video. If " + (one ? "it" : "the lines") + " could happen anywhere real - a kitchen, a street, a shop, an office, a garage - put the character in that place and furnish it as above.",
+"- NEVER describe lighting mood or quality, in any form. This is banned: \"soft afternoon light\", \"warm late-afternoon lighting\", \"warm golden light\", \"soft golden light\", \"warm morning window light\", \"light from a window\", \"sunlit kitchen\", or any other \"[mood] light/lighting\" or \"sunlit ___\" phrase. Do not swap in a different lighting descriptor either - just leave lighting out completely. This bans LIGHTING, not colour: the scene is still fully and richly coloured, it simply is not lit from anywhere in particular. Let the action, pose and setting alone make " + (one ? "the line's" : "the two lines'") + " meaning clear.",
+one
+? "- Match the setting to what THIS scene's line is about, instead of defaulting to the same room/background out of habit. Each scene is a single short line, so a new image arrives every few seconds: when consecutive lines continue one thought in one place, KEEP that setting and change the character's pose, action or the camera angle instead - never the same picture twice in a row, but no jumping to a new location every few seconds either. Move to a new, ordinary, everyday location (a different room, indoors vs outdoors, a different spot in the same space) when the script moves on to a new point or moment. When you keep a setting, describe it again in full in the new prompt with the same named objects and colours - every prompt is generated on its own, so \"the same room as before\" means nothing to the image tool."
+: "- Favor environment variety scene-to-scene so the setting actually matches what THIS scene's two lines are about, instead of defaulting to the same room/background out of habit. Only keep the exact same setting as the previous scene when the two lines are clearly a continuous moment in that same place; otherwise transition to a new, ordinary, everyday location (a different room, indoors vs outdoors, a different spot in the same space) that fits the new lines.",
 "- Vary the character's relationship to the camera across the video - rotate through all three of these rather than defaulting to one: (a) face visible, NOT looking at the camera; (b) face visible, looking directly at the camera; (c) character seen from behind or the side so the face is not visible, not looking at the camera. Pick whichever fits each scene's meaning.",
 "- When it fits the scene, you may add one or two side/background characters doing something plausible in the environment. Draw them in exactly the same flat 2D illustrated style as the main character - same line weight, same simple drawn faces - never photorealistic people sharing the frame with an illustrated one. Give them the same general body build as the main character but explicitly NO hat and NO scarf, so the main character stays visually unique in every frame.",
 "- END EVERY PROMPT with this exact sentence, word for word, as its final sentence:   Avoid using realistic environment look and avoid using realistic characters.",
@@ -300,12 +311,47 @@ function buildPrompt2() {
 "",
 "SCENE <number>",
 "",
-"\"<line 1 copied EXACTLY> <line 2 copied EXACTLY>\"",
+one ? "\"<the line copied EXACTLY>\"" : "\"<line 1 copied EXACTLY> <line 2 copied EXACTLY>\"",
 "",
 "<the image prompt paragraph, as ONE single line of text>",
 "",
-"Number the scenes 1, 2, 3... in script order. The quoted text must be the two script lines copied EXACTLY (same words, same punctuation) and joined with a single space - never reworded, never merged into new wording. My editing pipeline matches this text against the recorded audio, so ANY change breaks the video timing.",
+one
+? "Number the scenes 1, 2, 3... in script order. The quoted text must be the script line copied EXACTLY (same words, same punctuation) - never reworded, never shortened, never joined to the next line. My editing pipeline matches this text against the recorded audio, so ANY change breaks the video timing."
+: "Number the scenes 1, 2, 3... in script order. The quoted text must be the two script lines copied EXACTLY (same words, same punctuation) and joined with a single space - never reworded, never merged into new wording. My editing pipeline matches this text against the recorded audio, so ANY change breaks the video timing.",
 "",
+  ].concat(one ? [
+"Here is an example of the exact style and format I want, using 4 script lines that become 4 scenes. Look at scenes 3 and 4: one moment in one bedroom, so the place stays and the pose and camera angle change - and the room is described again in full, because every prompt is generated on its own.",
+"",
+"Script lines:",
+"For years, I tried to fix my habits.",
+"I would wake up super motivated.",
+"Then three days later, back to zero.",
+"And I always blamed myself for it.",
+"",
+"SCENE 1",
+"",
+"\"For years, I tried to fix my habits.\"",
+"",
+"Use the character from the uploaded image reference. The character sits at a small kitchen table, pen in hand, crossing out yet another line on a handwritten habit list, face visible but eyes down on the page rather than the camera, a tired but stubborn expression. The whole kitchen is drawn and fully coloured in the same flat illustrated style: pale yellow cabinets, a stack of three self-help books with red and blue spines, a green mug of cold coffee, a wall calendar covered in crossed-out days, a potted basil plant on the windowsill. Weary, persistent energy. Avoid using realistic environment look and avoid using realistic characters.",
+"",
+"SCENE 2",
+"",
+"\"I would wake up super motivated.\"",
+"",
+"Use the character from the uploaded image reference. The character stands at a bathroom mirror, fists lightly clenched at chest height, face visible but eyes on their own reflection rather than the camera, a determined, hopeful expression - the look of someone starting fresh. The whole bathroom is drawn and fully coloured in the same flat illustrated style: mint-green wall tiles, a white basin with chrome taps, a red toothbrush in a blue cup, a folded yellow towel on a wooden rail, a yellow sticky note stuck to the mirror edge. Motivated, energetic energy. Avoid using realistic environment look and avoid using realistic characters.",
+"",
+"SCENE 3",
+"",
+"\"Then three days later, back to zero.\"",
+"",
+"Use the character from the uploaded image reference. The character sits slumped on the edge of an unmade bed, back turned to the camera so the face isn't visible, shoulders low, a crumpled yellow sticky note in one hand. The bedroom is drawn and fully coloured in the same flat illustrated style: a navy duvet half off the mattress, warm brown floorboards, a grey hoodie thrown over a wooden chair, a cluttered bedside table with a phone and a half-full mug, a laundry basket overflowing in the corner. Deflated, defeated energy. Avoid using realistic environment look and avoid using realistic characters.",
+"",
+"SCENE 4",
+"",
+"\"And I always blamed myself for it.\"",
+"",
+"Use the character from the uploaded image reference. The character sits on the edge of an unmade bed, now seen from the front and closer, face visible and looking straight into the camera, one hand pressed to the forehead, a quiet, guilty half-frown. The bedroom is drawn and fully coloured in the same flat illustrated style: a navy duvet bunched beside them, a grey hoodie over a wooden chair, a crumpled yellow sticky note on warm brown floorboards, a phone lying face-down on a cluttered bedside table. Heavy, self-blaming energy. Avoid using realistic environment look and avoid using realistic characters.",
+  ] : [
 "Here is an example of the exact style and format I want, using 4 script lines that become 2 scenes:",
 "",
 "Script lines:",
@@ -325,18 +371,22 @@ function buildPrompt2() {
 "\"Then three days later, back to zero. And I always blamed myself for it.\"",
 "",
 "Use the character from the uploaded image reference. The character sits slumped on the edge of a bed in a different, messier room, back turned to the camera so the face isn't visible, shoulders low, the yellow sticky note now crumpled in one hand. The room is drawn and fully coloured in the same flat illustrated style: a navy duvet half off the mattress, warm brown floorboards, a grey hoodie thrown over a wooden chair, a cluttered bedside table with a phone and a half-full mug, a laundry basket overflowing in the corner. Deflated, self-critical energy. Avoid using realistic environment look and avoid using realistic characters.",
+  ], [
 "",
 "--- WHAT TO OUTPUT (read carefully) ---",
-"- First, count the non-empty script lines, work out how many two-line scenes that makes (round up if the line count is odd), and output exactly one line in the chat:   TOTAL SCENES: <n>",
-"- Then go straight to creating a downloadable .txt file named exactly original-scenes-prompts.txt containing ALL scenes, start to finish, in order, each formatted exactly as SCENE <number> / quoted two-line sentence / prompt paragraph, separated by blank lines, with nothing else added before or after.",
+one
+? "- First, count the non-empty script lines - that is the number of scenes, one per line - and output exactly one line in the chat:   TOTAL SCENES: <n>"
+: "- First, count the non-empty script lines, work out how many two-line scenes that makes (round up if the line count is odd), and output exactly one line in the chat:   TOTAL SCENES: <n>",
+"- Then go straight to creating a downloadable .txt file named exactly original-scenes-prompts.txt containing ALL scenes, start to finish, in order, each formatted exactly as SCENE <number> / quoted " + (one ? "line" : "two-line sentence") + " / prompt paragraph, separated by blank lines, with nothing else added before or after.",
 "- Do NOT print the SCENE blocks in the chat reply itself - they belong ONLY inside the file. After the file is created you may add one short confirmation sentence, nothing more.",
 "- Work through every scene up to <n> without pausing, asking to continue, summarizing, skipping ahead, or restarting numbering.",
 "- ONLY IF your tool is genuinely unable to create downloadable files: then output all scenes as plain chat text instead, in the exact same format, as a fallback.",
 "",
-"--- THE SCRIPT (breath-lines - group every 2 into one scene) ---",
+one ? "--- THE SCRIPT (breath-lines - every line is its own scene) ---"
+    : "--- THE SCRIPT (breath-lines - group every 2 into one scene) ---",
 "",
 script
-  ].join("\n");
+  ]).join("\n");
 }
 
 /* ================= script analysis ================= */
@@ -346,7 +396,7 @@ function analyzeScript(text) {
   const long = [];
   lines.forEach((l, i) => { const w = l.split(/\s+/).length; if (w > 14) long.push({ n: i + 1, w, text: l }); });
   const quotes = lines.filter(l => l.includes('"')).length;
-  const scenes = Math.ceil(lines.length / 2);
+  const scenes = Math.ceil(lines.length / (video.linesPerScene || 2));
   return { lines: lines.length, words, minutes: words / 160, long, quotes, scenes };
 }
 
@@ -357,7 +407,8 @@ function renderStats() {
   const a = analyzeScript(t);
   let html = "";
   html += "<div class='stat'><b>" + a.lines + "</b>breath lines</div>";
-  html += "<div class='stat'><b>" + a.scenes + "</b>scenes / images — 2 lines each</div>";
+  html += "<div class='stat'><b>" + a.scenes + "</b>scenes / images — " +
+          (video.linesPerScene === 1 ? "1 line" : "2 lines") + " each</div>";
   html += "<div class='stat'><b>" + a.words + "</b>words</div>";
   html += "<div class='stat'><b>≈ " + a.minutes.toFixed(1) + " min</b>at ~160 words/min</div>";
   html += "<div class='stat" + (a.long.length ? " bad" : "") + "'><b>" + a.long.length + "</b>lines over 14 words</div>";
@@ -410,6 +461,7 @@ async function saveVideo() {
         vo_script: video.voScript,
         done: video.done,
         current_step: video.step,
+        lines_per_scene: video.linesPerScene,
         updated_at: new Date().toISOString()
       })
     });
@@ -460,7 +512,8 @@ async function loadVideo(id, title) {
     if (!rows || !rows[0]) { toast("Video not found — refresh the list", true); return; }
     const r = rows[0];
     video = { id: r.id, title: r.title, keyPoints: r.key_points, voScript: r.vo_script,
-              done: r.done || {}, step: r.current_step || "s1" };
+              done: r.done || {}, step: r.current_step || "s1",
+              linesPerScene: r.lines_per_scene === 1 ? 1 : 2 };
     dirty = false;
     fillVideoInputs();
     toast("Loaded \"" + r.title + "\" — continuing at step " + video.step.slice(1));
@@ -516,6 +569,13 @@ function refresh() {
     + " minutes — change it in Setup.";
   $("prompt1Out").value = buildPrompt1();
   $("prompt2Out").value = buildPrompt2();
+  const one = video.linesPerScene === 1;
+  document.querySelectorAll("#lpsSwitch button").forEach(b =>
+    b.classList.toggle("on", +b.dataset.lps === video.linesPerScene));
+  $("lpsLede").innerHTML = one
+    ? "<b>every breath-line becomes its own image scene</b> — twice the images, a new picture every few seconds"
+    : "<b>two consecutive breath-lines become one image scene</b>, roughly halving the number of images you need to generate";
+  $("lpsHint").textContent = one ? "the same as your line count" : "about half your line count";
   $("buildCmd").textContent = "py pipeline.py build --scale 72";
   renderStats();
 
@@ -590,6 +650,13 @@ function bindEvents() {
 
   $("copyPrompt1").addEventListener("click", () => copyText(buildPrompt1()));
   $("copyPrompt2").addEventListener("click", () => copyText(buildPrompt2()));
+  document.querySelectorAll("#lpsSwitch button").forEach(b =>
+    b.addEventListener("click", () => {
+      const n = +b.dataset.lps;
+      if (n === video.linesPerScene) return;
+      video.linesPerScene = n; dirty = true; refresh();
+      toast(n === 1 ? "1 line per image — re-copy the prompt" : "2 lines per image — re-copy the prompt");
+    }));
   $("copyBuildCmd").addEventListener("click", () => copyText($("buildCmd").textContent));
   document.querySelectorAll("[data-copy]").forEach(b =>
     b.addEventListener("click", () => copyText(b.dataset.copy)));
