@@ -18,7 +18,10 @@ const STYLE = 'STYLE: Vintage editorial collage motion graphics. Background is a
 
 const OPENING = 'The video begins exactly on the provided start frame image: same scene, same on-screen text, same composition, lighting and camera position. Hold it for 0.3 seconds, then continue the motion seamlessly from it.';
 
-const AUDIO = 'AUDIO: No voiceover, no dialogue, no music. Only subtle whoosh and paper-slap sound effects.';
+// Silent on purpose: every sound is designed by hand in Premiere, so anything the model
+// generated would only be muted there. Said outright, because a prompt that leaves audio
+// out gets whatever sound the model picks.
+const AUDIO = 'AUDIO: Completely silent. No sound at all: no voiceover, no dialogue, no music and no sound effects.';
 
 const MASCOT_DESC = 'a round white head with small black dot eyes and a gentle smile, a black fedora with a white band, a tan-brown scarf, a plain white body with thin limbs, a black wristband on the left wrist, and thick clean black outlines. Keep its exact design in every scene. It is the only non-photo element in the collage: a flat paper cutout with only a hairline white edge and a soft drop shadow, no thick white border. It moves like a paper cutout puppet, and its tan-brown scarf is the only extra color.';
 
