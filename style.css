@@ -253,6 +253,23 @@ select:focus{outline:none; border-color:var(--accent-dim);}
 .prevcard.mine .pthumb{outline:2px solid var(--accent);}
 .prevcard b{display:block; color:#fff; font-size:13.5px; line-height:1.35; margin-top:7px;}
 .prevcard span{color:var(--muted); font-size:12px;}
+/* title picker - the titles lifted out of the pasted reply */
+.tpicklist{display:flex; flex-direction:column; gap:8px; margin-top:12px;}
+.tpick{display:flex; gap:12px; align-items:flex-start; background:var(--panel2); border:1px solid var(--border);
+  border-radius:10px; padding:10px 12px; cursor:pointer;}
+.tpick:hover{border-color:var(--accent-dim);}
+.tpick.on{border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent);}
+.tpscore{flex:none; min-width:48px; text-align:center; font-weight:800; font-size:13px; color:var(--accent);
+  background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:3px 6px;}
+.tpbody{flex:1; min-width:0;}
+.tpbody b{display:block; color:#fff; font-size:14.5px; line-height:1.4; word-break:break-word;}
+.tpbody small{display:block; color:var(--muted); font-size:12px; margin-top:2px;}
+.tpbody small.warn{color:var(--warn);}
+.tpdetail{color:var(--muted); font-size:12.5px; margin-top:5px; white-space:pre-line;}
+.tpick .sbtn{flex:none;}
+.tpick.on .sbtn{border-color:var(--accent); color:var(--accent);}
+.analysisbox .sep{border-top:1px dashed var(--border); margin:14px 0 12px;}
+.analysisbox .btn{margin-top:10px;}
 
 @media (max-width:700px){ .ritem{flex-wrap:wrap;} .rthumb{width:100%; min-width:0;} .rside{flex-direction:row; width:100%; justify-content:space-between;} }
 
@@ -278,3 +295,38 @@ select:focus{outline:none; border-color:var(--accent-dim);}
 .beat-lines{white-space:pre-wrap; font-family:ui-monospace, Consolas, monospace; font-size:12.5px;
   color:var(--text); background:var(--code-bg); border:1px solid var(--border); border-radius:7px;
   padding:8px 10px; margin-top:7px;}
+
+/* ================= MG Prompt Gen tab ================= */
+/* Everything is mg- prefixed: .panel and .seg already mean something else in this app. */
+.mg-setup{display:flex; flex-direction:column; align-items:flex-end; gap:6px;}
+.mg-setup .btn{margin-top:0;}
+.mg-setup small{font-size:12px; color:var(--muted);}
+.mg-grid{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:18px; align-items:start;}
+.mg-grid .inline .btn{margin-top:0;}
+.mg-cardhead{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px;}
+.card .mg-cardhead h3{margin:0;}
+.mg-cardhead .btn{margin-top:0; padding:7px 14px;}
+.mg-video-head{display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:10px;}
+.card .mg-video-head h3{margin:0; flex:1; white-space:nowrap;}
+.mg-seg{display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden;}
+.mg-seg label, .mg-seg label:first-of-type{position:relative; margin:0; cursor:pointer; font-weight:400;
+  color:var(--text);}
+.mg-seg input{position:absolute; opacity:0; pointer-events:none;}
+.mg-seg span{display:flex; align-items:center; gap:6px; height:100%; padding:5px 12px; font-size:13px;
+  background:var(--panel2);}
+.mg-seg img{width:18px; height:18px; border-radius:4px; background:#fff;}
+.mg-seg label + label span{border-left:1px solid var(--border);}
+.mg-seg input:checked + span{background:var(--accent); color:#07130c; font-weight:700;}
+.mg-seg input:focus-visible + span{outline:2px solid #fff; outline-offset:-2px;}
+.mg-remove{background:transparent; border:1px solid var(--border); color:var(--muted); border-radius:7px;
+  padding:3px 9px; font-size:13px; cursor:pointer;}
+.mg-remove:hover{color:var(--danger); border-color:var(--danger);}
+textarea.mg-script{min-height:96px;}
+.mg-meta{margin:6px 0 0; font-size:12.5px; color:var(--muted);}
+.mg-meta.warn{color:var(--warn);}
+.mg-status{min-height:20px; margin:0 0 6px; font-size:13px; color:var(--accent);}
+.mg-attach{margin:0 0 8px; font-size:13px; color:var(--muted);}
+.mg-hint{margin:12px 0 0; font-size:13px; color:var(--muted);}
+kbd{padding:0 5px; border:1px solid var(--border); border-radius:4px; background:var(--code-bg);
+  font:12px Consolas, monospace;}
+@media (max-width:900px){ .mg-grid{grid-template-columns:minmax(0,1fr);} .mg-setup{align-items:flex-start;} }

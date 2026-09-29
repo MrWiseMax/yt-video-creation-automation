@@ -13,7 +13,8 @@ const studio = {
 
 function studioAppKey() { return localStorage.getItem("studio_app_key") || ""; }
 
-/* Call the studio-api edge function. Long default timeout — AI actions can take a minute+. */
+/* Call the studio-api edge function - YouTube Data API work only; nothing it can do
+   reaches Claude. Long default timeout: importing a channel's videos can take a while. */
 async function studioApi(action, payload = {}, timeoutMs = 240000) {
   const key = studioAppKey();
   if (!key) {

@@ -9,6 +9,7 @@
 <body>
 <div class="toptabs">
   <button class="toptab active" data-tab="create">🎬 Create Video</button>
+  <button class="toptab" data-tab="mg">🎞️ MG Prompt Gen</button>
   <button class="toptab" data-tab="post">📤 Post to YouTube</button>
   <span class="toptab-sep"></span>
   <button class="toptab" data-tab="radar">📡 Outlier Radar</button>
@@ -442,6 +443,84 @@
   </main>
 </div>
 
+<!-- ======================= TAB: MG PROMPT GEN ======================= -->
+<div class="tabpanel" id="tab-mg">
+  <main class="studiopage">
+    <div class="pagehead">
+      <div>
+        <span class="step-tag">Shorts · motion-graphics clips</span>
+        <h2>🎞️ MG Prompt Gen</h2>
+        <p class="lede">Fill in the videos, copy the request into a new chat in your Claude Project, paste
+        Claude's reply back here, then copy each Flow prompt. It all goes through the Claude app, so it
+        costs no API credits.</p>
+      </div>
+      <div class="mg-setup">
+        <button type="button" class="btn secondary" id="mgCopyInstructions">📋 Copy project instructions</button>
+        <small id="mgSetupStatus">One-time setup for your Claude Project</small>
+      </div>
+    </div>
+
+    <div class="mg-grid">
+      <section>
+        <div id="mgVideos"></div>
+        <div class="inline">
+          <button type="button" class="btn secondary" id="mgAddVideo">+ Add video</button>
+          <button type="button" class="btn secondary" id="mgClearAll">Clear all</button>
+        </div>
+        <p class="mg-hint">Tip: paste a whole script with blank lines between the parts and it fills the
+        videos for you. <kbd>Ctrl</kbd> + <kbd>Enter</kbd> copies the request.</p>
+      </section>
+
+      <section>
+        <div class="card">
+          <div class="mg-cardhead">
+            <h3>1. Request for Claude</h3>
+            <button type="button" class="btn" id="mgCopyRequest">📋 Copy request</button>
+          </div>
+          <p id="mgRequestStatus" class="mg-status" role="status"></p>
+          <textarea id="mgRequest" class="mono" rows="7" readonly placeholder="Paste your voiceover text to build the request."></textarea>
+        </div>
+        <div class="card">
+          <h3>2. Claude's reply</h3>
+          <textarea id="mgReply" class="mono" rows="6" placeholder="Paste Claude's whole reply here"></textarea>
+          <p id="mgReplyStatus" class="mg-meta"></p>
+        </div>
+        <div id="mgPrompts"></div>
+      </section>
+    </div>
+  </main>
+
+  <template id="mgVideoTpl">
+    <div class="card mg-video">
+      <div class="mg-video-head">
+        <h3 class="mg-video-title">Video 1</h3>
+        <div class="mg-seg mg-char" role="radiogroup" aria-label="Character">
+          <label title="My own cartoon character"><input type="radio" value="own"><span><img alt="">My character</span></label>
+          <label title="1950s office worker in a dark suit and fedora"><input type="radio" value="default"><span>Default man</span></label>
+        </div>
+        <div class="mg-seg mg-len" role="radiogroup" aria-label="Video length">
+          <label><input type="radio" value="10"><span>10s</span></label>
+          <label><input type="radio" value="8"><span>8s</span></label>
+        </div>
+        <button type="button" class="mg-remove" title="Remove this video" aria-label="Remove this video">✕</button>
+      </div>
+      <textarea class="mg-script" rows="4" placeholder="Voiceover text, one line per row"></textarea>
+      <p class="mg-meta"></p>
+    </div>
+  </template>
+
+  <template id="mgPromptTpl">
+    <div class="card mg-prompt">
+      <div class="mg-cardhead">
+        <h3 class="mg-prompt-title">Video 1</h3>
+        <button type="button" class="btn mg-copy-prompt">📋 Copy</button>
+      </div>
+      <p class="mg-attach"></p>
+      <textarea class="mg-prompt-text mono" rows="9" readonly></textarea>
+    </div>
+  </template>
+</div>
+
 <!-- ======================= TAB: OUTLIER RADAR ======================= -->
 <div class="tabpanel" id="tab-radar">
   <main class="studiopage">
@@ -466,12 +545,10 @@
       <label>My channel <span class="lbl-note">(link or @handle — powers Packaging Lab)</span></label>
       <div class="inline"><input type="text" id="stMyChannel" placeholder="e.g. https://youtube.com/@yourchannel"><button class="btn" id="stSetChannelBtn">Set</button></div>
       <div class="settingsstatus" id="stMyChannelStatus"></div>
-      <label>Niche description <span class="lbl-note">(included in every AI analysis)</span></label>
+      <label>Niche description <span class="lbl-note">(included in every prompt this app builds)</span></label>
       <textarea id="stNiche" rows="2" placeholder="e.g. Personal finance & self-improvement, illustrated character videos, 8-12 min"></textarea>
       <label>Persona / style notes</label>
       <textarea id="stPersona" rows="2" placeholder="e.g. Calm, sincere, story-driven narration. Character 'Max' (hat + scarf)."></textarea>
-      <label>Minimum outlier score for automatic AI analysis</label>
-      <input type="text" id="stMinScore" style="max-width:120px" placeholder="3">
       <div class="inline" style="margin-top:14px">
         <button class="btn" id="stSaveBtn">Save settings</button>
         <button class="btn secondary" id="stTestBtn">Test connection</button>
@@ -521,16 +598,18 @@
       <div>
         <span class="step-tag">Package · win the click</span>
         <h2>🎯 Packaging Lab</h2>
-        <p class="lede">Paste your title and the finished script — it builds a ready-to-paste prompt for the
-        chat that wrote your script, grounded in your own past titles and what's over-performing in your
-        niche. Paste the reply back and you'll have <b>15 ranked titles</b> (each one proved against a line
-        of your script) plus <b>3 ready-to-paste thumbnail prompts</b> built around your character. Preview
-        any title in a fake YouTube feed next to real competitor videos.</p>
+        <p class="lede">Paste the finished script — and your working title, if you have one. It builds a
+        ready-to-paste prompt for the chat that wrote your script, grounded in your own past titles and
+        what's over-performing in your niche. <b>No title yet?</b> Leave it empty and it finds the best titles
+        for the finished video. Paste the reply back and you get <b>15 ranked titles to pick from</b> (each
+        one proved against a line of your script) plus <b>3 ready-to-paste thumbnail prompts</b> built around
+        your character. The title you pick shows up in a fake YouTube feed next to real competitor videos.</p>
       </div>
     </div>
     <div class="card">
-      <label>Video title <span class="lbl-note">(required — it will try to beat it)</span></label>
-      <input type="text" id="pkgTopic" placeholder="e.g. Why saving money is keeping you poor">
+      <label>Working title <span class="lbl-note">(optional — leave it empty and it finds the best titles
+        from your script; fill it in and it tries to beat it)</span></label>
+      <input type="text" id="pkgTopic" placeholder="Empty = find me a title  ·  or e.g. Why saving money is keeping you poor">
       <label>Full voice-over script <span class="lbl-note">(required — paste all of
         <span class="filename">voice-over-script.txt</span> — this is what keeps the packaging honest)</span>
         <span class="lbl-note" id="pkgScriptCount"></span></label>
@@ -552,9 +631,17 @@
         </div>
       </div>
     </div>
+    <div class="card" id="pkgPickCard">
+      <h3>Pick your title</h3>
+      <label for="pkgReply">Claude's reply <span class="lbl-note">(paste it whole — its titles turn into a
+        list you can choose from)</span></label>
+      <textarea id="pkgReply" class="mono" rows="5" placeholder="Paste Claude's whole reply here"></textarea>
+      <div class="settingsstatus" id="pkgReplyStatus"></div>
+      <div class="tpicklist" id="pkgTitleList"></div>
+    </div>
     <div class="card" id="pkgPreviewCard">
       <h3>Feed preview — how it competes</h3>
-      <label>Title to preview <span class="lbl-note">(paste any title to see it in a fake YouTube feed)</span></label>
+      <label>Title to preview <span class="lbl-note">(the one you chose above, or paste any title)</span></label>
       <input type="text" id="pkgPrevTitle" placeholder="Paste a title to see it in a fake YouTube feed">
       <div class="inline" style="margin-top:10px">
         <input type="file" id="pkgThumbFile" accept="image/*">
@@ -570,5 +657,6 @@
 <script src="js/studio-shared.js"></script>
 <script src="js/radar.js"></script>
 <script src="js/packaging.js"></script>
+<script src="js/mg-prompt-gen.js"></script>
 </body>
 </html>

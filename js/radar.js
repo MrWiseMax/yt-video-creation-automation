@@ -62,7 +62,6 @@ function fillSettingsForm() {
     ? "Current channel: " + s.my_channel_title : "No channel set yet.";
   $("stNiche").value = s.niche_description || "";
   $("stPersona").value = s.persona_notes || "";
-  $("stMinScore").value = s.min_outlier_score != null ? s.min_outlier_score : "3";
 }
 
 async function saveStudioSettings() {
@@ -71,7 +70,6 @@ async function saveStudioSettings() {
   const patch = {
     niche_description: $("stNiche").value.trim(),
     persona_notes: $("stPersona").value.trim(),
-    min_outlier_score: Number($("stMinScore").value) || 3,
     updated_at: new Date().toISOString(),
   };
   try {
@@ -92,7 +90,6 @@ async function testStudioConnection() {
   try {
     const r = await studioApi("ping", {}, 20000);
     const line = "✓ App key OK · YouTube key: " + (r.yt_key ? "✓" : "✗ missing (run set-keys.ps1)") +
-      " · Claude key: " + (r.claude_key ? "✓" : "✗ missing (run set-keys.ps1)") +
       " · Analytics OAuth: " + (r.analytics_oauth ? "✓" : "— optional");
     el.className = "settingsstatus ok";
     el.textContent = line;
@@ -238,7 +235,7 @@ function renderRadarFeed() {
         "<div class='scriptbox' style='display:none'></div>" +
       "</div>" +
       "<div class='rside'>" + scoreBadge(v.outlier_score) +
-        "<button class='sbtn analyzebtn'>" + (v.claude_analysis ? "View analysis" : "🧠 Analyze") + "</button>" +
+        "<button class='sbtn analyzebtn' title='Builds a prompt to paste into the Claude app — no API credits'>🧠 Analyze</button>" +
         "<button class='sbtn scriptbtn'>📝 Script</button>" +
       "</div></div>";
   }).join("");
@@ -250,40 +247,74 @@ function renderRadarFeed() {
   });
 }
 
-function renderRadarAnalysis(el, a) {
-  el.innerHTML =
+/* ---------- analysis (no Claude API cost — builds a paste-ready prompt) ----------
+   🧠 Analyze used to send this brief to Claude from the backend and bill the API on
+   every click. It now builds the same brief for me to paste into the Claude app, like
+   every other prompt in this app. Rows analysed back then still carry that answer in
+   claude_analysis; it is already paid for, so it is shown above the prompt for free. */
+
+function buildRadarAnalysisPrompt(v) {
+  const ch = studio.channels.find(c => c.channel_id === v.channel_id) || {};
+  const n = x => Math.round(Number(x || 0)).toLocaleString();
+  const days = Math.max(0.1, (Date.now() - new Date(v.published_at).getTime()) / 864e5);
+  return [
+"Act as a YouTube growth strategist. Work out why one specific competitor video over-performed its own channel's baseline, then turn that into concrete, non-copycat video ideas for MY channel. Be specific and practical; no fluff.",
+"",
+studioChannelBlock(),
+"",
+"--- MY RECENT VIDEO TITLES + VIEWS (my voice, and what not to repeat) ---",
+"",
+studioMyTitlesBlock(12),
+"",
+"--- THE OUTLIER VIDEO ---",
+"",
+"Title: \"" + v.title + "\"",
+"Link: https://www.youtube.com/watch?v=" + v.video_id,
+"Channel: " + (ch.title || "?") + " (" + n(ch.subscriber_count) + " subscribers; a typical video gets ~" + n(ch.median_views) + " views)",
+"This video: " + n(v.view_count) + " views in " + days.toFixed(1) + " days — " +
+  (v.outlier_score != null ? Number(v.outlier_score).toFixed(1) + "x" : "an unknown multiple of") + " the channel's median (its outlier score)",
+"Views per day: " + n(v.views_per_day),
+v.duration_seconds ? "Length: " + fmtDur(v.duration_seconds) + (v.is_short ? " (a Short)" : "") : null,
+"",
+"--- WHAT I WANT ---",
+"",
+"1. WHY IT WORKED — 3-5 sentences on why THIS video beat its channel's usual numbers: topic timing, the promise in the title, the curiosity gap, the emotion, the audience pain point. Base it on the data above, not on guesses about a thumbnail you cannot see.",
+"2. THREE VIDEO IDEAS FOR MY CHANNEL — each one adapts this winning topic instead of copying it. For each: a ready-to-use title in my channel's style on its own line, then 2-3 sentences on the promise, the structure, and how it differs from the competitor's video.",
+"3. PACKAGING NOTES — 2-3 sentences of title and thumbnail advice for this topic on my channel.",
+"",
+"Do not ask me clarifying questions first. Just deliver.",
+  ].filter(l => l !== null).join("\n");   // null, not "" — "" is a real blank line
+}
+
+/** An analysis saved back when this button still called the API. */
+function radarAnalysisHtml(a) {
+  return "<h4>Saved analysis</h4>" +
     "<h4>Why it worked</h4><div>" + esc(a.why_it_worked) + "</div>" +
     "<h4>Your angles</h4>" +
     (a.my_angles || []).map(x =>
       "<div class='anglecard'><b>" + esc(x.video_title) + "</b>" + esc(x.angle) +
       "<br><button class='sbtn' data-copytitle='" + esc(x.video_title) + "'>📋 Copy title</button></div>").join("") +
-    "<h4>Packaging notes</h4><div>" + esc(a.packaging_notes || "") + "</div>";
-  el.querySelectorAll("[data-copytitle]").forEach(b =>
-    b.addEventListener("click", () => copyText(b.dataset.copytitle)));
+    "<h4>Packaging notes</h4><div>" + esc(a.packaging_notes || "") + "</div>" +
+    "<div class='sep'></div>";
 }
 
-async function toggleRadarAnalysis(item, videoId) {
+function toggleRadarAnalysis(item, videoId) {
   const boxEl = item.querySelector(".analysisbox");
-  const btn = item.querySelector(".analyzebtn");
-  const v = studio.radarVideos.find(x => x.video_id === videoId);
   if (boxEl.style.display !== "none") { boxEl.style.display = "none"; return; }
-  if (v && v.claude_analysis) {
-    renderRadarAnalysis(boxEl, v.claude_analysis);
-    boxEl.style.display = "block";
-    return;
-  }
-  btn.disabled = true; btn.textContent = "Analyzing… ~1 min";
-  try {
-    const r = await studioApi("analyze_video", { video_id: videoId });
-    if (v) { v.claude_analysis = r.analysis; v.analyzed_at = new Date().toISOString(); }
-    renderRadarAnalysis(boxEl, r.analysis);
-    boxEl.style.display = "block";
-    btn.textContent = "View analysis";
-  } catch (e) {
-    toast("Analysis failed: " + e.message, true);
-    btn.textContent = "🧠 Analyze";
-  }
-  btn.disabled = false;
+  const v = studio.radarVideos.find(x => x.video_id === videoId);
+  if (!v) return;
+  boxEl.innerHTML = (v.claude_analysis ? radarAnalysisHtml(v.claude_analysis) : "") +
+    "<h4>Analysis prompt</h4>" +
+    "<div class='note'>Paste into <b>the Claude app</b>: why this video beat its channel's usual numbers, " +
+    "plus 3 video ideas for your channel. Costs no API credits.</div>" +
+    "<textarea class='promptout' rows='10' readonly></textarea>" +
+    "<button class='btn'>📋 Copy prompt</button>";
+  const ta = boxEl.querySelector("textarea");
+  ta.value = buildRadarAnalysisPrompt(v);
+  boxEl.querySelector(".btn").addEventListener("click", () => copyText(ta.value));
+  boxEl.querySelectorAll("[data-copytitle]").forEach(b =>
+    b.addEventListener("click", () => copyText(b.dataset.copytitle)));
+  boxEl.style.display = "block";
 }
 
 /* ---------- script-from-video workflow (no Claude API cost — builds a paste-ready prompt) ----------
