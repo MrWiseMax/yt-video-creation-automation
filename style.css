@@ -307,7 +307,11 @@ select:focus{outline:none; border-color:var(--accent-dim);}
 .card .mg-cardhead h3{margin:0;}
 .mg-cardhead .btn{margin-top:0; padding:7px 14px;}
 .mg-video-head{display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:10px;}
-.card .mg-video-head h3{margin:0; flex:1; white-space:nowrap;}
+/* two rows: title + remove on top, the character and length pickers under them - with
+   four lengths the pickers no longer fit beside the title in a half-width column */
+.card .mg-video-head h3{margin:0; flex:1 1 calc(100% - 46px); white-space:nowrap;}
+.mg-video-head .mg-remove{order:1;}
+.mg-video-head .mg-seg{order:2;}
 .mg-seg{display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden;}
 .mg-seg label, .mg-seg label:first-of-type{position:relative; margin:0; cursor:pointer; font-weight:400;
   color:var(--text);}

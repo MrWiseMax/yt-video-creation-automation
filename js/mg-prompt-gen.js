@@ -63,16 +63,19 @@ function sceneWindow(len, chained) {
   return [chained ? START_HOLD : 0, len - END_HOLD];
 }
 
-// Flow renders only 8s or 10s clips. A 9s video is rendered at 10s and trimmed to its
-// first 9s afterwards. Everything else - the request to Claude, the scene window, the
-// settle 0.7s before the cut - is planned for a real 9s clip, so Claude never has to
-// know. Only the Flow prompt is told the render is longer, and to freeze the extra.
+// Flow renders only 8s or 10s clips. A length in between is rendered at the next one up
+// and trimmed afterwards: 9s at 10s, 7s at 8s. Everything else - the request to Claude,
+// the scene window, the settle 0.7s before the cut - is planned for the real length, so
+// Claude never has to know. Only the Flow prompt is told the render is longer, and to
+// freeze the extra.
+const FLOW_LENGTHS = [8, 10];
+
 function renderSeconds(len) {
-  return len === 9 ? 10 : len;
+  return FLOW_LENGTHS.find((f) => f >= len) || len;
 }
 
-// Without this the model spreads the action across the whole 10s render and the trim
-// cuts off the ending. It also keeps the frame at the trim point and the true last
+// Without this the model spreads the action across the whole longer render and the
+// trim cuts off the ending. It also keeps the frame at the trim point and the true last
 // frame identical, which is what the next clip starts from.
 function holdBlock(len) {
   const [, end] = sceneWindow(len, false);
@@ -231,7 +234,7 @@ function attachLine(video, mode, index, prev) {
 const STORAGE_KEY = 'mgPromptGen.v1';
 const DEFAULT_LENGTH = 10;
 const DEFAULT_CHAR = 'own';
-const LENGTHS = [10, 9, 8];
+const LENGTHS = [10, 9, 8, 7];
 
 const els = {
   tab: $('tab-mg'),
@@ -290,8 +293,11 @@ function cardNote(videos, i) {
   let warn = false;
   if (perScene < MIN_SCENE) {
     warn = true;
-    text = videos[i].len < 10
-      ? `${count} lines in ${videos[i].len}s is only ${fmt(perScene)}s per scene, 10s works better`
+    // the shortest longer length that gives every line enough time, if one does
+    const fits = [...LENGTHS].sort((a, b) => a - b)
+      .find((l) => l > videos[i].len && (sceneWindow(l, i > 0)[1] - from) / count >= MIN_SCENE);
+    text = fits
+      ? `${count} lines in ${videos[i].len}s is only ${fmt(perScene)}s per scene, ${fits}s works better`
       : `${count} lines is only ${fmt(perScene)}s per scene, consider splitting it`;
   }
   if (i > 0 && videos[i].char !== videos[i - 1].char) text += ' · character changes here';
