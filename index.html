@@ -500,6 +500,7 @@
         </div>
         <div class="mg-seg mg-len" role="radiogroup" aria-label="Video length">
           <label><input type="radio" value="10"><span>10s</span></label>
+          <label title="Made as a 10s clip in Flow, then trimmed to 9s"><input type="radio" value="9"><span>9s</span></label>
           <label><input type="radio" value="8"><span>8s</span></label>
         </div>
         <button type="button" class="mg-remove" title="Remove this video" aria-label="Remove this video">✕</button>
@@ -516,6 +517,7 @@
         <button type="button" class="btn mg-copy-prompt">📋 Copy</button>
       </div>
       <p class="mg-attach"></p>
+      <p class="mg-trim" hidden></p>
       <textarea class="mg-prompt-text mono" rows="9" readonly></textarea>
     </div>
   </template>

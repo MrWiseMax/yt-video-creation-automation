@@ -60,6 +60,23 @@ function sceneWindow(len, chained) {
   return [chained ? START_HOLD : 0, len - END_HOLD];
 }
 
+// Flow renders only 8s or 10s clips. A 9s video is rendered at 10s and trimmed to its
+// first 9s afterwards. Everything else - the request to Claude, the scene window, the
+// settle 0.7s before the cut - is planned for a real 9s clip, so Claude never has to
+// know. Only the Flow prompt is told the render is longer, and to freeze the extra.
+function renderSeconds(len) {
+  return len === 9 ? 10 : len;
+}
+
+// Without this the model spreads the action across the whole 10s render and the trim
+// cuts off the ending. It also keeps the frame at the trim point and the true last
+// frame identical, which is what the next clip starts from.
+function holdBlock(len) {
+  const [, end] = sceneWindow(len, false);
+  const total = renderSeconds(len);
+  return `TIMING: The video is ${total} seconds long, but all of the action is finished by ${fmt(end)}s. From ${fmt(end)}s to the very end at ${total} seconds the final frame stays frozen: the camera stops pushing in and does not drift, nothing moves, nothing new appears and no text changes. The last ${fmt(total - end)} seconds are one still image.`;
+}
+
 // ---------- The short request pasted into a new chat in the Claude Project ----------
 
 function buildRequest(videos) {
@@ -185,16 +202,21 @@ function parseReply(text) {
 }
 
 function buildFlowPrompt(video, mode, scenes) {
-  const parts = [`Vertical 9:16 motion-graphics video, ${video.len} seconds.`];
+  const trimmed = renderSeconds(video.len) !== video.len;
+  const parts = [`Vertical 9:16 motion-graphics video, ${renderSeconds(video.len)} seconds.`];
   if (mode !== 'first') parts.push(OPENING);
-  parts.push(STYLE, CHARACTER_BLOCKS[video.char][mode], scenes, AUDIO);
+  parts.push(STYLE, CHARACTER_BLOCKS[video.char][mode], scenes);
+  if (trimmed) parts.push(holdBlock(video.len));
+  parts.push(AUDIO);
   return parts.join('\n\n');
 }
 
-function attachLine(video, mode, index) {
+// prev = the video before this one, whose last frame this one starts on.
+function attachLine(video, mode, index, prev) {
   const own = video.char === 'own';
   if (mode === 'first') return own ? 'your character image as the reference image' : 'nothing, text only';
-  const start = `the last frame of Video ${index} as the start frame`;
+  const cut = prev && renderSeconds(prev.len) !== prev.len ? ` (after trimming it to ${prev.len}s)` : '';
+  const start = `the last frame of Video ${index}${cut} as the start frame`;
   if (!own) return start;
   return mode === 'switch'
     ? `${start}, plus your character image (important: the mascot is not in the start frame)`
@@ -206,7 +228,7 @@ function attachLine(video, mode, index) {
 const STORAGE_KEY = 'mgPromptGen.v1';
 const DEFAULT_LENGTH = 10;
 const DEFAULT_CHAR = 'own';
-
+const LENGTHS = [10, 9, 8];
 
 const els = {
   tab: $('tab-mg'),
@@ -265,8 +287,8 @@ function cardNote(videos, i) {
   let warn = false;
   if (perScene < MIN_SCENE) {
     warn = true;
-    text = videos[i].len === 8
-      ? `${count} lines in 8s is only ${fmt(perScene)}s per scene, 10s works better`
+    text = videos[i].len < 10
+      ? `${count} lines in ${videos[i].len}s is only ${fmt(perScene)}s per scene, 10s works better`
       : `${count} lines is only ${fmt(perScene)}s per scene, consider splitting it`;
   }
   if (i > 0 && videos[i].char !== videos[i - 1].char) text += ' · character changes here';
@@ -279,7 +301,14 @@ function renderPrompts(filled, scenes) {
     const mode = characterMode(filled, i);
     const node = els.promptTpl.content.firstElementChild.cloneNode(true);
     node.querySelector('.mg-prompt-title').textContent = `Video ${i + 1} — ${v.len}s · ${NAMES[v.char].label}`;
-    node.querySelector('.mg-attach').textContent = `Attach in Flow: ${attachLine(v, mode, i)}`;
+    node.querySelector('.mg-attach').textContent = `Attach in Flow: ${attachLine(v, mode, i, filled[i - 1])}`;
+    const trim = node.querySelector('.mg-trim');
+    if (renderSeconds(v.len) !== v.len) {
+      const [, end] = sceneWindow(v.len, false);
+      trim.textContent = `In Flow pick ${renderSeconds(v.len)}s, then trim the download to its first ${v.len}.0s.`
+        + ` The action ends at ${fmt(end)}s; everything after is the frozen final frame.`;
+      trim.hidden = false;
+    }
     const box = node.querySelector('.mg-prompt-text');
     const button = node.querySelector('.mg-copy-prompt');
     if (scenes[i + 1]) {
@@ -423,7 +452,7 @@ if (saved && Array.isArray(saved.videos) && saved.videos.length) {
   const fallbackChar = saved.char === 'default' ? 'default' : DEFAULT_CHAR;
   saved.videos.forEach((v) => addVideo(
     v.text || '',
-    v.len === 8 ? 8 : DEFAULT_LENGTH,
+    LENGTHS.includes(v.len) ? v.len : DEFAULT_LENGTH,
     v.char === 'own' || v.char === 'default' ? v.char : fallbackChar,
   ));
 } else {

@@ -327,6 +327,7 @@ textarea.mg-script{min-height:96px;}
 .mg-meta.warn{color:var(--warn);}
 .mg-status{min-height:20px; margin:0 0 6px; font-size:13px; color:var(--accent);}
 .mg-attach{margin:0 0 8px; font-size:13px; color:var(--muted);}
+.mg-trim{margin:-4px 0 8px; font-size:13px; color:var(--warn);}
 .mg-hint{margin:12px 0 0; font-size:13px; color:var(--muted);}
 kbd{padding:0 5px; border:1px solid var(--border); border-radius:4px; background:var(--code-bg);
   font:12px Consolas, monospace;}
