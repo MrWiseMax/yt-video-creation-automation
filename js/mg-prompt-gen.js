@@ -7,7 +7,8 @@
    Moved in from the standalone "MG Prompt Gen" page. The prompt text below is that
    page's, unchanged. It all sits inside one function scope because its names (STYLE,
    fmt, NAMES, update...) are generic enough to collide with script.js's globals; it
-   reuses $() and copyText() from there. */
+   reuses $() and copyText() from there. The character icon is my-own-character.jpg,
+   next to index.html. */
 (function () {
 
 // ---------- Fixed parts the app adds around Claude's scenes ----------
@@ -206,8 +207,6 @@ const STORAGE_KEY = 'mgPromptGen.v1';
 const DEFAULT_LENGTH = 10;
 const DEFAULT_CHAR = 'own';
 
-// A 48px crop of my-own-character.jpg, inlined so the tab needs no image file.
-const MASCOT_ICON = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBAUEBAYFBQUGBgYHCQ4JCQgICRINDQoOFRIWFhUSFBQXGiEcFxgfGRQUHScdHyIjJSUlFhwpLCgkKyEkJST/2wBDAQYGBgkICREJCREkGBQYJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCT/wAARCAAwADADASIAAhEBAxEB/8QAGQAAAwEBAQAAAAAAAAAAAAAABgcIBQIE/8QALRAAAgEEAQMEAgEDBQAAAAAAAQIDBAUGEQAHEiEIEzFBIlEUYXGhI2JykZL/xAAWAQEBAQAAAAAAAAAAAAAAAAACAAH/xAAaEQEBAQEBAQEAAAAAAAAAAAABABECEzEh/9oADAMBAAIRAxEAPwCqeBfVXqdQdL8eW41FOaysqZPYo6NXCGZ9EklvPaqgEltHXj7I4aE6HJE9UF1uN9z+Wkgo66agsdLHSmSKB3iSaUCWTbAEA9hiGj9c0sY0x31f2mVZI8lx+qpJu0mFrdIKlZTrYXTBWUn43oj9kcXeU+rDPZrytRaBbrXRK21ojAJ+5d/Ekh8k/vs7QOKNAzP2pHKznxpY2Lf2+N816XpxmOQojW7F7xJHvXvSUzQxDf7dwo/zxYR1ri6WdRaHqfh9Jf6NBDKxMNVTd2zTzrruTf2PIIP2COF3I9wi9330vqKi/UsN0pcgUhqGkqQGppYtaYsw0dq7A68eB58cdPTL1I4r1KvUdiipLha7pMrNDFUqrJN2gsQrqT5ABOiB8cxJDB/qB633+wX2ow/Gi9ukghjkqq8KGmb3F2FhB8KAPl9E78DWt8UuAddcu6dRV1PRx0Vzhrqk1cxuXuvM0pVVLe6G7jsKPnfK26hYJjGW2moqb7YKK5T0tPI0MkialTSkgK66YDf0DxS4j6ecMu3Tqy3+eK7VVZU2mGtljhrZB70jQhyFAbQ2fA5CU7Cj+r3MCn+njNhDfv3J2H/Q1wQyj1K9Ssli/iCqt1qjdvCUVN2uf1oyFm3/AGHGf0i6YYDmGNW6533FntlyrZqhIaKqqJ5PdWI+XUOd6AIB2Pn+44WWWkt2N9YosKtOAUVNaTbDWNdI4CrB/wDkAB27/HXzs/rloWftLE2B5rfaWoyS801yNJGFee4XEsvbGWALAP8AmyjeyFX4B5W/R/0/WDpe63V52u18aMp/Mde1IVYfkIk2db+CxJYj7AOuerrBS0y4teUKIkUlpqg4A0NCN/PDLCppqjDrFNUb9+S3Uzyb+e4xKT/nkulBbLqHUqwBUjRB+xxfdJKg2OjrcArmK1+NyGKAOfNRQMxanmX9jtPtnXwyEH64wuKDrrWGlu2MizTxW7JC88tPcwdvTwIoLoU+HSRiiaf8dnfzrg6QNZgrhbuc3bGrdmdknumWNjNypKeUxyVCKtNWU8jL7kXuSr2d24kPghgP6HhBimZUeZLW1NqhqJLZTyiGC4MNQ1p1tmi+2RT+PdrRIOtgb4orf17yQU/8DK+mlZcnTW6m2BXhlI+/bffb/wCjzq+9b8vulKaewYNUW4MpUS3SpjhVBr7VSWI/oNcHpxm6T8u9zLc6tVL5NU0+G21++svrfwQU8+1TA7qZj/tVNrv7ZlHG9BDHTwpDEoSONQqqPgADQHEP6dbytfleTxXepo6+/NDBKK4HtkaElg0CJshY42Cn8deZB3edHj74zo6BPkHl5cft/9k=';
 
 const els = {
   tab: $('tab-mg'),
@@ -244,7 +243,6 @@ function addVideo(text = '', len = DEFAULT_LENGTH, char = DEFAULT_CHAR) {
     r.name = `mg-char-${id}`;
     r.checked = r.value === char;
   });
-  node.querySelector('.mg-char img').src = MASCOT_ICON;
   node.querySelector('.mg-script').value = text;
   els.videos.appendChild(node);
   return node;
