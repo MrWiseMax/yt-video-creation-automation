@@ -40,14 +40,20 @@ const UNIT_MAX = 4.2;            // never grow a unit past this...
 const UNIT_MIN = 2.0;            // ...unless breaking would leave a stub shorter than this
 
 // ---- how a Short becomes Flow clips --------------------------------------------------
-const CLIP_MAX = 10.0;           // Flow's longest render
-
-// ---- what counts as a Short ----------------------------------------------------------
-// Both of mine so far ran about 18s, and a Short whose job is to send people somewhere
-// else does not need to be long - it needs to stop and then point.
-const SHORT_MIN_SECS = 10, SHORT_MAX_SECS = 58;
-const SWEET_MIN = 15, SWEET_MAX = 45;
+const CLIP_MAX = 10.0;           // Flow renders 8s or 10s, so this is the ceiling
+const CLIP_MIN = 6.0;            // under this, most of a rendered 8s clip is thrown away
+const CLIP_IDEAL = 8.0;          // ...and here a clip costs nothing it does not use
+const CLIP_TARGETS = [2, 3, 4];
+const DEFAULT_CLIPS = 2;
 const DEFAULT_CHAR = "own";
+
+/* How long a Short may run, given that it is built out of exactly `n` Flow clips. This is
+   the whole length rule now. There is no separate idea of a good Short length any more,
+   because a Short I cannot build is not a candidate however well it reads - and the old
+   15-45s window quietly allowed both. */
+function clipWindow(n) {
+  return { n: n, min: n * CLIP_MIN, max: n * CLIP_MAX, ideal: n * CLIP_IDEAL };
+}
 
 const els = {
   tab:        $("tab-shorts"),
@@ -55,6 +61,8 @@ const els = {
   srtMeta:    $("shSrtMeta"),
   srtClear:   $("shSrtClear"),
   drop:       $("shDrop"),
+  clipSeg:    document.querySelectorAll("#tab-shorts .sh-clipseg input"),
+  clipTargetMeta: $("shClipMetaTarget"),
   dropName:   $("shDropName"),
   dropHint:   $("shDropHint"),
   buildBtn:   $("shBuildBtn"),
@@ -89,6 +97,7 @@ let srtText = "";       // raw Transcript.srt
 let srtName = "";       // ...and what it was called, for the picker to show back
 let units = [];         // [{ text, start, end }] — the numbered lines everything refers to
 let shorts = [];        // [{ n, from, to, score, label, type, hook, why }]  1-based, inclusive
+let clipTarget = DEFAULT_CLIPS;   // how many Flow clips I want each Short built from
 let sel = null;         // the Short whose clips are open, by its n
 let work = {};          // per Short n: { chars, texts, clipCount, reply }
 
@@ -204,6 +213,7 @@ function numberedScript() {
 }
 
 function buildShortsPrompt() {
+  const win = clipWindow(clipTarget);
   return [
 "Act as a YouTube Shorts editor.",
 "",
@@ -222,7 +232,7 @@ function buildShortsPrompt() {
 "",
 "MECHANICS:",
 "6. ONE UNBROKEN RUN of line numbers, in order. I am cutting the existing edit, so I cannot skip a line in the middle or stitch two distant parts together.",
-"7. IT FITS. Every line below is printed with how many seconds it takes to say. Add them up: a range should come to roughly " + SWEET_MIN + " to " + SWEET_MAX + " seconds, and never more than " + SHORT_MAX_SECS + ".",
+"7. IT FITS THE SHAPE I BUILD. I make every Short out of exactly " + win.n + " motion-graphics clips, and no clip can run longer than " + CLIP_MAX + " seconds. Every line below is printed with how many seconds it takes to say — add them up. The range has to land between " + Math.round(win.min) + " and " + Math.round(win.max) + " seconds, and about " + Math.round(win.ideal) + " seconds is the sweet spot: at the very top of that window it often will not divide into " + win.n + " pieces at line boundaries. Outside the window I cannot build it at all, however well it reads, so do not offer it.",
 "",
 "Score each one on that whole job together — how many people it holds to the end AND how many of those then go looking for the full video. A stretch that holds beautifully but closes the subject completely is worth less to me than one that holds well and leaves a door open.",
 "",
@@ -234,7 +244,7 @@ numberedScript(),
 "",
 "--- WHAT I WANT ---",
 "",
-"EVERY stretch that does both jobs — best first. There is no target number: some scripts hold two of these and some hold seven, and I would rather have two strong ones than eight I have to sift through. If a stretch only half works, leave it out and say so at the end instead.",
+"EVERY stretch that does both jobs AND lands inside that " + Math.round(win.min) + "–" + Math.round(win.max) + " second window — best first. There is no target number of Shorts: some scripts hold two of these and some hold seven, and I would rather have two strong ones than eight I have to sift through. If a stretch only half works, leave it out and say so at the end instead.",
 "",
 "For each one, start with a line in EXACTLY this shape and nothing else on it:",
 "",
@@ -320,10 +330,6 @@ function balanced(list, n) {
   return out;
 }
 
-function autoClipCount(list) {
-  return Math.max(1, Math.ceil(spanOf(list) / CLIP_MAX));
-}
-
 function splitClips(list, n) {
   for (let k = Math.max(1, n); k <= list.length; k++) {
     const parts = balanced(list, k);
@@ -339,7 +345,9 @@ function clipsFor(s) {
   const list = units.slice(s.from - 1, s.to);
   if (!list.length) return [];
   const w = work[s.n] || {};
-  const parts = splitClips(list, w.clipCount || autoClipCount(list));
+  // the setting is a wish, not a promise: splitClips() walks up from it when the line
+  // boundaries cannot be made to fit, which is why each card prints what really came out
+  const parts = splitClips(list, w.clipCount || clipTarget);
   return parts.map((p, i) => ({
     lines: p.map(u => u.text),
     text: (w.texts && w.texts[i] != null) ? w.texts[i] : p.map(u => u.text).join("\n"),
@@ -383,10 +391,11 @@ function renderList() {
     const text = ok ? rangeText(s) : "";
     const t = rangeTime(s);
     const secs = t ? t.end - t.start : 0;
+    const clips = ok ? clipsFor(s).length : 0;
+    const win = clipWindow(clipTarget);
     let lenCls = "", lenNote = "";
-    if (secs > SHORT_MAX_SECS) { lenCls = " bad"; lenNote = " — too long for a Short"; }
-    else if (secs < SHORT_MIN_SECS) { lenCls = " bad"; lenNote = " — very short"; }
-    else if (secs > SWEET_MAX) { lenCls = " warn"; lenNote = " — trim a line or two"; }
+    if (secs > win.max) { lenCls = " bad"; lenNote = " — too long for " + win.n + " clips"; }
+    else if (secs < win.min) { lenCls = " warn"; lenNote = " — short for " + win.n + " clips"; }
 
     return "<div class='sh-card" + (sel === s.n ? " on" : "") + "' data-i='" + i + "'>" +
       "<div class='sh-head'>" +
@@ -403,6 +412,8 @@ function renderList() {
         "<span class='sh-meta'>lines " + s.from + "–" + s.to + " · " +
           wordCount(text) + " words" +
           (t ? " · <b>" + fmtTC(t.start) + " → " + fmtTC(t.end) + "</b>" : "") +
+          (clips ? " · <span class='" + (clips === win.n ? "" : "warn") + "'>" +
+                   clips + " clip" + (clips === 1 ? "" : "s") + "</span>" : "") +
         "</span>" +
         "<span class='sh-nudge'>start" +
           "<button type='button' class='sh-nb' data-act='s-'>−</button>" +
@@ -610,7 +621,7 @@ function renderLines() {
 function save() {
   try {
     localStorage.setItem(KEY, JSON.stringify({
-      srt: srtText, srtName: srtName, reply: els.reply.value,
+      srt: srtText, srtName: srtName, reply: els.reply.value, clipTarget: clipTarget,
       shorts: shorts, sel: sel, work: work,
     }));
   } catch (e) { /* a full or blocked store is not worth a toast on every keystroke */ }
@@ -655,6 +666,23 @@ els.drop.addEventListener("drop", e => {
 // ...and a near miss would otherwise open the file in this tab and lose the page, so the
 // whole panel swallows the drop instead
 ["dragover", "drop"].forEach(ev => els.tab.addEventListener(ev, e => e.preventDefault()));
+
+function renderClipTarget() {
+  els.clipSeg.forEach(r => { r.checked = +r.value === clipTarget; });
+  const w = clipWindow(clipTarget);
+  els.clipTargetMeta.textContent = "— so it hunts for stretches of about " +
+    Math.round(w.min) + "–" + Math.round(w.max) + "s of script, " +
+    Math.round(w.ideal) + "s being the sweet spot";
+}
+
+els.clipSeg.forEach(r => r.addEventListener("change", () => {
+  if (!r.checked) return;
+  clipTarget = +r.value;
+  renderClipTarget();
+  renderList();        // every candidate is re-judged against the new window
+  renderWork();
+  save();
+}));
 
 els.srtClear.addEventListener("click", e => {
   e.preventDefault();
@@ -745,10 +773,12 @@ const saved = load();
 if (saved) {
   if (typeof saved.srt === "string") srtText = saved.srt;
   if (typeof saved.srtName === "string") srtName = saved.srtName;
+  if (CLIP_TARGETS.indexOf(saved.clipTarget) >= 0) clipTarget = saved.clipTarget;
   if (typeof saved.reply === "string") els.reply.value = saved.reply;
   if (saved.work && typeof saved.work === "object") work = saved.work;
   if (typeof saved.sel === "number") sel = saved.sel;
 }
+renderClipTarget();
 rebuildUnits();
 // the saved ranges carry my nudges; fall back to re-reading the reply
 shorts = (saved && Array.isArray(saved.shorts) && saved.shorts.length)
