@@ -307,7 +307,13 @@ select:focus{outline:none; border-color:var(--accent-dim);}
 .mg-setup .btn{margin-top:0; width:100%; justify-content:center;}
 .mg-setup small{position:absolute; left:0; right:0; bottom:0; font-size:12px;
   color:var(--muted); text-align:right;}
-.mg-grid{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:18px; align-items:start;}
+.mg-grid{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:18px; align-items:start;}
+/* Three columns do not fit the 1080px reading column the rest of the tab uses, so the
+   workbench breaks out of it and centres on the viewport instead. left:50% walks it to
+   the middle of the reading column, translateX(-50%) pulls back by half its own width,
+   and the result sits centred with the same 26px gutter the page already has. */
+#shWork{position:relative; left:50%; transform:translateX(-50%);
+  width:min(1540px, calc(100vw - 52px));}
 .mg-grid .inline .btn{margin-top:0;}
 .mg-cardhead{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px;}
 .card .mg-cardhead h3{margin:0;}
@@ -339,6 +345,7 @@ textarea.mg-script{min-height:96px;}
 .mg-hint{margin:12px 0 0; font-size:13px; color:var(--muted);}
 kbd{padding:0 5px; border:1px solid var(--border); border-radius:4px; background:var(--code-bg);
   font:12px Consolas, monospace;}
+@media (max-width:1240px){ .mg-grid{grid-template-columns:repeat(2, minmax(0,1fr));} }
 @media (max-width:900px){ .mg-grid{grid-template-columns:minmax(0,1fr);} .mg-setup{align-items:flex-start;} }
 
 /* ================= Shorts Finder tab ================= */
