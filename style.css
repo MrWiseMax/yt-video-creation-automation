@@ -336,3 +336,42 @@ textarea.mg-script{min-height:96px;}
 kbd{padding:0 5px; border:1px solid var(--border); border-radius:4px; background:var(--code-bg);
   font:12px Consolas, monospace;}
 @media (max-width:900px){ .mg-grid{grid-template-columns:minmax(0,1fr);} .mg-setup{align-items:flex-start;} }
+
+/* ================= Shorts Finder tab ================= */
+/* sh- prefixed: sf- already belongs to the Setup/Radar script boxes. */
+.sh-controls{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px;}
+.sh-controls label{margin:0;}
+.sh-controls .btn{margin-top:0;}
+.sh-controls input[type=number]{width:84px; flex:none;}
+.sh-controls input[type=file]{flex:1; min-width:200px;}
+.sh-gap{margin-top:18px;}
+.sh-meta{margin:6px 0 0; font-size:12.5px; color:var(--muted);}
+.sh-meta.ok{color:var(--accent);}
+.sh-meta.warn{color:var(--warn);}
+
+.sh-list{display:flex; flex-direction:column; gap:12px;}
+.sh-card{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px 16px;}
+.sh-head{display:flex; gap:12px; align-items:flex-start;}
+.sh-score{flex:none; min-width:48px; text-align:center; font-weight:800; font-size:13px; color:var(--accent);
+  background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:3px 6px;}
+.sh-title{flex:1; min-width:0;}
+.sh-title b{color:#fff; font-size:14.5px;}
+.sh-type{display:inline-block; margin-left:8px; font-size:11px; letter-spacing:.8px; text-transform:uppercase;
+  color:var(--muted); border:1px solid var(--border); border-radius:99px; padding:1px 8px;}
+.sh-len{flex:none; font-size:12.5px; color:var(--muted); font-variant-numeric:tabular-nums;}
+.sh-len.warn{color:var(--warn);}
+.sh-len.bad{color:var(--danger);}
+.sh-lines{white-space:pre-wrap; font-family:ui-monospace, Consolas, monospace; font-size:12.5px;
+  color:var(--text); background:var(--code-bg); border:1px solid var(--border); border-radius:7px;
+  padding:9px 11px; margin-top:9px;}
+.sh-foot{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px;}
+.sh-foot .sh-meta{margin:0; flex:1; min-width:170px;}
+.sh-foot .sh-meta b{color:var(--accent); font-variant-numeric:tabular-nums;}
+.sh-foot .sbtn{margin:0;}
+.sh-nudge{display:inline-flex; align-items:center; gap:4px; font-size:12px; color:var(--muted);}
+.sh-nb{background:var(--panel2); border:1px solid var(--border); color:var(--text); border-radius:6px;
+  width:26px; height:26px; cursor:pointer; font-size:13px; line-height:1; font-family:inherit;}
+.sh-nb:hover{border-color:var(--accent-dim); color:var(--accent);}
+#shLinesWrap summary{cursor:pointer; color:#fff; font-size:15.5px; font-weight:700;}
+.sh-script{white-space:pre-wrap; font-family:ui-monospace, Consolas, monospace; font-size:12.5px;
+  color:var(--muted); max-height:380px; overflow:auto; margin-top:10px;}

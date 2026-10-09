@@ -10,6 +10,7 @@
 <div class="toptabs">
   <button class="toptab active" data-tab="create">🎬 Create Video</button>
   <button class="toptab" data-tab="mg">🎞️ MG Prompt Gen</button>
+  <button class="toptab" data-tab="shorts">✂️ Shorts Finder</button>
   <button class="toptab" data-tab="post">📤 Post to YouTube</button>
   <span class="toptab-sep"></span>
   <button class="toptab" data-tab="radar">📡 Outlier Radar</button>
@@ -524,6 +525,69 @@
   </template>
 </div>
 
+<!-- ======================= TAB: SHORTS FINDER ======================= -->
+<div class="tabpanel" id="tab-shorts">
+  <main class="studiopage">
+    <div class="pagehead">
+      <div>
+        <span class="step-tag">Shorts · find the cuts</span>
+        <h2>✂️ Shorts Finder</h2>
+        <p class="lede">Paste the finished script of a long video and it builds a prompt that hunts for the
+        stretches that stand on their own as a Short. Claude answers with <b>line numbers</b>, so the text you
+        see below is pulled straight out of your own script — word for word, with a real runtime. Add the
+        video's <span class="filename">Transcript.srt</span> and every candidate comes back as a
+        <b>timecode you can scrub straight to</b>. It all runs in the Claude app, so it costs no API credits.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <label>Finished voice-over script <span class="lbl-note">(paste all of
+        <span class="filename">voice-over-script.txt</span>)</span>
+        <span class="lbl-note" id="shScriptMeta"></span></label>
+      <textarea id="shScript" class="mono" rows="7" placeholder="Paste the whole script here — one spoken line per row."></textarea>
+      <div class="sh-controls">
+        <button type="button" class="btn secondary" id="shPullScript">↙ Use the script from 🎬 Create Video</button>
+      </div>
+
+      <label class="sh-gap">Transcript <span class="lbl-note">(optional — pick
+        <span class="filename">Transcript.srt</span> out of the video's folder and the candidates come back as
+        exact timecodes instead of estimates; the file stays on your computer)</span></label>
+      <div class="sh-controls">
+        <input type="file" id="shSrtFile" accept=".srt,text/plain">
+        <button type="button" class="sbtn" id="shSrtClear" hidden>Clear</button>
+      </div>
+      <p class="sh-meta" id="shSrtMeta"></p>
+
+      <div class="sh-controls">
+        <label for="shCount">How many candidates</label>
+        <input type="number" id="shCount" value="8" min="1" max="20">
+        <button class="btn" id="shBuildBtn">⚙ Build the Shorts prompt</button>
+      </div>
+      <div class="sf-outwrap" id="shPromptWrap" style="display:none">
+        <label>Ready-to-paste prompt</label>
+        <textarea id="shPromptOut" class="promptout" rows="14" readonly></textarea>
+        <button class="btn" id="shPromptCopy">📋 Copy full prompt</button>
+      </div>
+      <p class="mg-hint"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> builds the prompt.</p>
+    </div>
+
+    <div class="card">
+      <h3>Claude's reply</h3>
+      <label for="shReply">Paste it whole <span class="lbl-note">(the line numbers in it turn into the cut
+        list below — nudge any range a line either way with the − and + buttons)</span></label>
+      <textarea id="shReply" class="mono" rows="5" placeholder="Paste Claude's whole reply here"></textarea>
+      <div class="settingsstatus" id="shReplyStatus"></div>
+    </div>
+
+    <div id="shList" class="sh-list"></div>
+
+    <details class="card sh-gap" id="shLinesWrap" hidden>
+      <summary>The numbered script</summary>
+      <pre class="sh-script" id="shLines"></pre>
+    </details>
+  </main>
+</div>
+
 <!-- ======================= TAB: OUTLIER RADAR ======================= -->
 <div class="tabpanel" id="tab-radar">
   <main class="studiopage">
@@ -661,5 +725,6 @@
 <script src="js/radar.js"></script>
 <script src="js/packaging.js"></script>
 <script src="js/mg-prompt-gen.js"></script>
+<script src="js/shorts-finder.js"></script>
 </body>
 </html>
