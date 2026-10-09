@@ -468,8 +468,15 @@
       <label>Transcript <span class="lbl-note">(pick <span class="filename">Transcript.srt</span> out of the
         video's folder — it carries the words and the timing, so it is the only thing this tab needs.
         The file stays on your computer)</span></label>
-      <div class="sh-controls">
-        <input type="file" id="shSrtFile" accept=".srt,text/plain">
+      <div class="sh-droprow">
+        <label class="sh-drop" id="shDrop">
+          <input type="file" id="shSrtFile" accept=".srt,text/plain">
+          <span class="sh-drop-ico" aria-hidden="true">↓</span>
+          <span class="sh-drop-text">
+            <b id="shDropName">Choose Transcript.srt</b>
+            <small id="shDropHint">or drag it straight in from the video's folder</small>
+          </span>
+        </label>
         <button type="button" class="sbtn" id="shSrtClear" hidden>Clear</button>
       </div>
       <p class="sh-meta" id="shSrtMeta"></p>

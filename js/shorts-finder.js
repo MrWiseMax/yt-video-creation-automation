@@ -54,6 +54,9 @@ const els = {
   srtFile:    $("shSrtFile"),
   srtMeta:    $("shSrtMeta"),
   srtClear:   $("shSrtClear"),
+  drop:       $("shDrop"),
+  dropName:   $("shDropName"),
+  dropHint:   $("shDropHint"),
   buildBtn:   $("shBuildBtn"),
   promptWrap: $("shPromptWrap"),
   promptOut:  $("shPromptOut"),
@@ -83,6 +86,7 @@ const els = {
 };
 
 let srtText = "";       // raw Transcript.srt
+let srtName = "";       // ...and what it was called, for the picker to show back
 let units = [];         // [{ text, start, end }] — the numbered lines everything refers to
 let shorts = [];        // [{ n, from, to, score, label, type, hook, why }]  1-based, inclusive
 let sel = null;         // the Short whose clips are open, by its n
@@ -164,6 +168,11 @@ function rebuildUnits() {
 }
 
 function srtMeta() {
+  els.drop.classList.toggle("has", !!srtText);
+  els.dropName.textContent = srtText ? (srtName || "Transcript loaded") : "Choose Transcript.srt";
+  els.dropHint.textContent = srtText
+    ? "Click it, or drop another file on it, to swap the transcript"
+    : "or drag it straight in from the video's folder";
   if (!srtText) {
     els.srtMeta.textContent = "No transcript yet — pick Transcript.srt out of the video's folder.";
     els.srtMeta.className = "sh-meta";
@@ -601,7 +610,7 @@ function renderLines() {
 function save() {
   try {
     localStorage.setItem(KEY, JSON.stringify({
-      srt: srtText, reply: els.reply.value,
+      srt: srtText, srtName: srtName, reply: els.reply.value,
       shorts: shorts, sel: sel, work: work,
     }));
   } catch (e) { /* a full or blocked store is not worth a toast on every keystroke */ }
@@ -613,22 +622,44 @@ function load() {
 
 /* ---------------- events ---------------- */
 
-els.srtFile.addEventListener("change", () => {
-  const f = els.srtFile.files && els.srtFile.files[0];
-  if (!f) return;
+function takeSrt(file) {
+  if (!file) return;
   const r = new FileReader();
   r.onload = () => {
     srtText = String(r.result || "");
+    srtName = file.name || "";
     rebuildUnits();
     renderList();
     renderWork();
     save();
   };
-  r.readAsText(f);
+  r.readAsText(file);
+}
+
+els.srtFile.addEventListener("change", () => takeSrt(els.srtFile.files && els.srtFile.files[0]));
+
+// Dropping the file in beats hunting for it in a dialog: it is already on screen in the
+// video's folder. dragover has to be cancelled too, or the browser refuses the drop.
+["dragenter", "dragover"].forEach(ev => els.drop.addEventListener(ev, e => {
+  e.preventDefault();
+  els.drop.classList.add("on");
+}));
+["dragleave", "dragend"].forEach(ev => els.drop.addEventListener(ev, () =>
+  els.drop.classList.remove("on")));
+els.drop.addEventListener("drop", e => {
+  e.preventDefault();
+  els.drop.classList.remove("on");
+  takeSrt(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]);
 });
 
-els.srtClear.addEventListener("click", () => {
+// ...and a near miss would otherwise open the file in this tab and lose the page, so the
+// whole panel swallows the drop instead
+["dragover", "drop"].forEach(ev => els.tab.addEventListener(ev, e => e.preventDefault()));
+
+els.srtClear.addEventListener("click", e => {
+  e.preventDefault();
   srtText = "";
+  srtName = "";
   els.srtFile.value = "";
   rebuildUnits();
   renderList();
@@ -713,6 +744,7 @@ document.addEventListener("keydown", e => {
 const saved = load();
 if (saved) {
   if (typeof saved.srt === "string") srtText = saved.srt;
+  if (typeof saved.srtName === "string") srtName = saved.srtName;
   if (typeof saved.reply === "string") els.reply.value = saved.reply;
   if (saved.work && typeof saved.work === "object") work = saved.work;
   if (typeof saved.sel === "number") sel = saved.sel;
