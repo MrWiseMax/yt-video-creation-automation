@@ -1,14 +1,19 @@
 "use strict";
-/* ================= MG Prompt Gen tab =================
-   Motion-graphics clips for Google Flow. The request, the one-time Claude Project
-   instructions and the finished Flow prompts are all built here in the browser for me
-   to paste into the Claude app - nothing on this tab calls an API.
+/* ================= MG prompt engine =================
+   The motion-graphics half of the Shorts Finder: the fixed prompt parts, the Claude
+   Project instructions, and the two translations between them (my clip list -> the
+   request I paste into the Project, and the Project's reply -> finished Flow prompts).
 
-   Moved in from the standalone "MG Prompt Gen" page. The prompt text below is that
-   page's, unchanged. It all sits inside one function scope because its names (STYLE,
-   fmt, NAMES, update...) are generic enough to collide with script.js's globals; it
-   reuses $() and copyText() from there. The character icon is my-own-character.jpg,
-   next to index.html. */
+   Pure functions over plain objects, no DOM: js/shorts-finder.js owns the screen and
+   calls in here. This was the MG Prompt Gen tab, which is why the text below is unchanged
+   from it - the Claude Project's instructions are generated from these same constants, so
+   altering one of them means re-pasting the Project instructions.
+
+   A clip is { lines: [string], len: seconds, char: "own" | "default" }. `len` used to be
+   one of 10/9/8/7 picked by hand and is now the real length of that stretch of narration,
+   measured off Transcript.srt - so it is a float, and lenLabel() is what keeps a whole
+   number printing as "10s" rather than "10.0s". That matters: the Project instructions
+   embed an example built by buildRequest(), and a changed example is a changed Project. */
 (function () {
 
 // ---------- Fixed parts the app adds around Claude's scenes ----------
@@ -71,7 +76,13 @@ function sceneWindow(len, chained) {
 const FLOW_LENGTHS = [8, 10];
 
 function renderSeconds(len) {
-  return FLOW_LENGTHS.find((f) => f >= len) || len;
+  return FLOW_LENGTHS.find((f) => f >= len - 0.001) || FLOW_LENGTHS[FLOW_LENGTHS.length - 1];
+}
+
+// A whole number prints as "10s", a measured length as "8.6s". The Project instructions
+// embed buildRequest(EXAMPLE_VIDEOS), so "10.0s" here would quietly invalidate them.
+function lenLabel(len) {
+  return Math.abs(len - Math.round(len)) < 0.05 ? String(Math.round(len)) : fmt(len);
 }
 
 // Without this the model spreads the action across the whole longer render and the
@@ -93,7 +104,7 @@ function buildRequest(videos) {
     if (mode === 'same') start = `continues from Video ${i}`;
     if (mode === 'switch') start = `continues from Video ${i}, character changes from ${NAMES[videos[i - 1].char].request} to ${NAMES[v.char].request}`;
     return [
-      `Video ${i + 1} | ${v.len}s | ${NAMES[v.char].request} | ${start} | scenes ${fmt(from)}–${fmt(to)}s`,
+      `Video ${i + 1} | ${lenLabel(v.len)}s | ${NAMES[v.char].request} | ${start} | scenes ${fmt(from)}–${fmt(to)}s`,
       ...v.lines,
     ].join('\n');
   }).join('\n\n');
@@ -221,7 +232,7 @@ function buildFlowPrompt(video, mode, scenes) {
 function attachLine(video, mode, index, prev) {
   const own = video.char === 'own';
   if (mode === 'first') return own ? 'your character image as the reference image' : 'nothing, text only';
-  const cut = prev && renderSeconds(prev.len) !== prev.len ? ` (after trimming it to ${prev.len}s)` : '';
+  const cut = prev && renderSeconds(prev.len) !== prev.len ? ` (after trimming it to ${lenLabel(prev.len)}s)` : '';
   const start = `the last frame of Video ${index}${cut} as the start frame`;
   if (!own) return start;
   return mode === 'switch'
@@ -229,245 +240,21 @@ function attachLine(video, mode, index, prev) {
     : `${start}, plus your character image if Flow allows a second image`;
 }
 
-// ---------- UI ----------
+// ---------- what the Shorts Finder uses ----------
 
-const STORAGE_KEY = 'mgPromptGen.v1';
-const DEFAULT_LENGTH = 10;
-const DEFAULT_CHAR = 'own';
-const LENGTHS = [10, 9, 8, 7];
-
-const els = {
-  tab: $('tab-mg'),
-  videos: $('mgVideos'),
-  videoTpl: $('mgVideoTpl'),
-  promptTpl: $('mgPromptTpl'),
-  request: $('mgRequest'),
-  copyRequest: $('mgCopyRequest'),
-  requestStatus: $('mgRequestStatus'),
-  reply: $('mgReply'),
-  replyStatus: $('mgReplyStatus'),
-  prompts: $('mgPrompts'),
-  setupStatus: $('mgSetupStatus'),
+window.MG = {
+  NAMES,
+  MIN_SCENE,
+  fmt,
+  lenLabel,
+  characterMode,
+  sceneWindow,
+  renderSeconds,
+  buildRequest,
+  parseReply,
+  buildFlowPrompt,
+  attachLine,
+  PROJECT_INSTRUCTIONS,
 };
-
-let uid = 0;
-
-function readLines(text) {
-  return text.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
-}
-
-function cards() {
-  return [...els.videos.querySelectorAll('.mg-video')];
-}
-
-function addVideo(text = '', len = DEFAULT_LENGTH, char = DEFAULT_CHAR) {
-  const node = els.videoTpl.content.firstElementChild.cloneNode(true);
-  const id = uid++;
-  node.querySelectorAll('.mg-len input').forEach((r) => {
-    r.name = `mg-len-${id}`;
-    r.checked = Number(r.value) === len;
-  });
-  node.querySelectorAll('.mg-char input').forEach((r) => {
-    r.name = `mg-char-${id}`;
-    r.checked = r.value === char;
-  });
-  node.querySelector('.mg-script').value = text;
-  els.videos.appendChild(node);
-  return node;
-}
-
-function getVideos() {
-  return cards().map((c) => ({
-    text: c.querySelector('.mg-script').value,
-    len: Number(c.querySelector('.mg-len input:checked').value),
-    char: c.querySelector('.mg-char input:checked').value,
-  }));
-}
-
-function cardNote(videos, i) {
-  const count = readLines(videos[i].text).length;
-  if (count === 0) return { text: 'Empty, skipped', warn: true };
-  const [from, to] = sceneWindow(videos[i].len, i > 0);
-  const perScene = (to - from) / count;
-  let text = `${count} ${count === 1 ? 'line' : 'lines'}`;
-  let warn = false;
-  if (perScene < MIN_SCENE) {
-    warn = true;
-    // the shortest longer length that gives every line enough time, if one does
-    const fits = [...LENGTHS].sort((a, b) => a - b)
-      .find((l) => l > videos[i].len && (sceneWindow(l, i > 0)[1] - from) / count >= MIN_SCENE);
-    text = fits
-      ? `${count} lines in ${videos[i].len}s is only ${fmt(perScene)}s per scene, ${fits}s works better`
-      : `${count} lines is only ${fmt(perScene)}s per scene, consider splitting it`;
-  }
-  if (i > 0 && videos[i].char !== videos[i - 1].char) text += ' · character changes here';
-  return { text, warn };
-}
-
-function renderPrompts(filled, scenes) {
-  els.prompts.replaceChildren();
-  filled.forEach((v, i) => {
-    const mode = characterMode(filled, i);
-    const node = els.promptTpl.content.firstElementChild.cloneNode(true);
-    node.querySelector('.mg-prompt-title').textContent = `Video ${i + 1} — ${v.len}s · ${NAMES[v.char].label}`;
-    node.querySelector('.mg-attach').textContent = `Attach in Flow: ${attachLine(v, mode, i, filled[i - 1])}`;
-    const trim = node.querySelector('.mg-trim');
-    if (renderSeconds(v.len) !== v.len) {
-      const [, end] = sceneWindow(v.len, false);
-      trim.textContent = `In Flow pick ${renderSeconds(v.len)}s, then trim the download to its first ${v.len}.0s.`
-        + ` The action ends at ${fmt(end)}s; everything after is the frozen final frame.`;
-      trim.hidden = false;
-    }
-    const box = node.querySelector('.mg-prompt-text');
-    const button = node.querySelector('.mg-copy-prompt');
-    if (scenes[i + 1]) {
-      box.value = buildFlowPrompt(v, mode, scenes[i + 1]);
-    } else {
-      box.value = '';
-      box.placeholder = "Waiting for this video's scenes in Claude's reply.";
-      button.disabled = true;
-    }
-    els.prompts.appendChild(node);
-  });
-}
-
-function update() {
-  const videos = getVideos();
-  const all = cards();
-
-  all.forEach((card, i) => {
-    card.querySelector('.mg-video-title').textContent = `Video ${i + 1}`;
-    card.querySelector('.mg-remove').hidden = all.length === 1;
-    const note = cardNote(videos, i);
-    const meta = card.querySelector('.mg-meta');
-    meta.textContent = note.text;
-    meta.classList.toggle('warn', note.warn);
-  });
-
-  const filled = videos
-    .map((v) => ({ lines: readLines(v.text), len: v.len, char: v.char }))
-    .filter((v) => v.lines.length);
-
-  els.request.value = filled.length ? buildRequest(filled) : '';
-  els.copyRequest.disabled = !filled.length;
-  els.requestStatus.textContent = '';
-
-  const scenes = parseReply(els.reply.value);
-  const found = filled.filter((_, i) => scenes[i + 1]).length;
-  if (!els.reply.value.trim()) {
-    els.replyStatus.textContent = "Paste Claude's reply to build the Flow prompts.";
-    els.replyStatus.classList.remove('warn');
-  } else {
-    els.replyStatus.textContent = `Found scenes for ${found} of ${filled.length} ${filled.length === 1 ? 'video' : 'videos'}.`;
-    els.replyStatus.classList.toggle('warn', found !== filled.length);
-  }
-  renderPrompts(filled, scenes);
-
-  saveState({ videos, reply: els.reply.value });
-}
-
-// Browser-only draft of what is typed here - a convenience, never the only copy of anything.
-function saveState(state) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch (e) { /* storage unavailable, nothing to keep */ }
-}
-
-function loadState() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY));
-  } catch (e) {
-    return null;
-  }
-}
-
-function resetVideos() {
-  els.videos.replaceChildren();
-  addVideo();
-  addVideo();
-}
-
-function copyRequest() {
-  if (!els.request.value) return;
-  copyText(els.request.value);
-  els.requestStatus.textContent = 'Copied. Paste it into a new chat in your Claude Project.';
-}
-
-// A pasted script with blank lines between parts fills this video and the ones after it.
-els.videos.addEventListener('paste', (e) => {
-  const box = e.target.closest('.mg-script');
-  if (!box) return;
-  const text = e.clipboardData.getData('text').replace(/\r\n?/g, '\n');
-  const parts = text.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
-  if (parts.length < 2) return;
-  e.preventDefault();
-  let card = box.closest('.mg-video');
-  parts.forEach((part, i) => {
-    if (i > 0) card = card.nextElementSibling || addVideo();
-    card.querySelector('.mg-script').value = part;
-  });
-  update();
-});
-
-els.videos.addEventListener('input', update);
-els.videos.addEventListener('change', update);
-els.videos.addEventListener('click', (e) => {
-  if (!e.target.closest('.mg-remove')) return;
-  e.target.closest('.mg-video').remove();
-  update();
-});
-
-els.reply.addEventListener('input', update);
-
-els.prompts.addEventListener('click', (e) => {
-  const button = e.target.closest('.mg-copy-prompt');
-  if (!button) return;
-  copyText(button.closest('.mg-prompt').querySelector('.mg-prompt-text').value);
-  button.textContent = '✓ Copied';
-  setTimeout(() => { button.textContent = '📋 Copy'; }, 1500);
-});
-
-$('mgAddVideo').addEventListener('click', () => {
-  addVideo().querySelector('.mg-script').focus();
-  update();
-});
-
-$('mgClearAll').addEventListener('click', () => {
-  resetVideos();
-  els.reply.value = '';
-  update();
-});
-
-els.copyRequest.addEventListener('click', copyRequest);
-
-$('mgCopyInstructions').addEventListener('click', () => {
-  copyText(PROJECT_INSTRUCTIONS);
-  els.setupStatus.textContent = 'Copied. Paste it into your Claude Project\'s instructions.';
-});
-
-// Only while this tab is showing - the other tabs have their own text boxes.
-document.addEventListener('keydown', (e) => {
-  if (e.ctrlKey && e.key === 'Enter' && els.tab.classList.contains('active')) {
-    e.preventDefault();
-    copyRequest();
-  }
-});
-
-// ---------- Start ----------
-
-const saved = loadState();
-if (saved && Array.isArray(saved.videos) && saved.videos.length) {
-  // Older saves kept one character for all videos in saved.char.
-  const fallbackChar = saved.char === 'default' ? 'default' : DEFAULT_CHAR;
-  saved.videos.forEach((v) => addVideo(
-    v.text || '',
-    LENGTHS.includes(v.len) ? v.len : DEFAULT_LENGTH,
-    v.char === 'own' || v.char === 'default' ? v.char : fallbackChar,
-  ));
-} else {
-  resetVideos();
-}
-if (saved && typeof saved.reply === 'string') els.reply.value = saved.reply;
-update();
 
 })();

@@ -1,91 +1,94 @@
 "use strict";
 /* ================= Shorts Finder tab =================
-   Finds the stretches of a finished long-form script that stand on their own as Shorts,
-   so I stop re-reading 200 lines looking for them by eye.
+   One tab for the whole Shorts job: find the stretches of a finished video that stand on
+   their own, then build the Google Flow prompts for the one I pick. It used to be two
+   tabs and two pastes of the same script; now Transcript.srt is the only thing I hand it.
 
-   Same house rule as every other tab: nothing here calls an API. It builds a prompt I
-   paste into the Claude app, and reads the reply back.
+   Why the SRT is the single input: it carries the words AND the timing. Everything that
+   used to be a decision falls out of it — how long a candidate runs, where it sits in the
+   video, how many Flow clips it needs and how long each one is. The old MG tab asked me
+   to pick 10s / 9s / 8s / 7s per clip; that pick is now measured, not guessed.
 
-   The one idea that makes this work: Claude answers with LINE NUMBERS, never with the
-   text. The app then pulls the lines out of my own script, which means the text on screen
-   is always verbatim, the word count and the runtime are real, and a drifted range shows
-   itself immediately instead of hiding behind a paraphrase. It is also what lets the
-   nudge buttons move a range by a line without asking Claude anything.
+   Three translations happen here, in order:
 
-   Drop in Transcript.srt as well and the ranges come back as actual timecodes, because
-   then there is nothing left to do but scrub to that point in Premiere and cut. The
-   alignment is word-level (the SRT breaks lines for subtitles, not for breath, so the two
-   files never line up one-to-one) — see alignTimes().
+     cues -> UNITS      a subtitle cue is half a sentence, so cues are merged into
+                        speakable units of about 2.5-4s that break on punctuation. Those
+                        are what gets numbered for Claude, and later what becomes one
+                        motion-graphics scene each.
+     units -> SHORTS    Claude answers with line numbers only, never text. The app pulls
+                        the lines back out of the transcript, so what is on screen is
+                        verbatim and the runtime is real.
+     short -> CLIPS     a Short is split into Flow-sized clips (<=10s) by a balanced
+                        partition, so four clips come out 9/9/9/9 rather than 10/10/10/6.
 
-   Relies on globals from script.js: $, copyText, toast, esc. */
+   Nothing here calls an API: both prompts are built in the browser for the Claude app.
+
+   Relies on globals from script.js: $, copyText, toast, esc — and on js/mg-engine.js
+   for everything motion-graphics. */
 (function () {
 
-const KEY = "shortsFinder.v1";
+const KEY = "shortsFinder.v2";
 
-// 1502 words over 9:35 of finished narration, measured off my own transcript. Shorts live
-// or die on whether they fit, so this is a measured number and not a textbook 150 wpm.
-const WPS = 2.61;
+// ---- how cues become speakable units -------------------------------------------------
+// A unit wants to be one motion-graphics scene, and the Project instructions say no scene
+// may be under 2.5s and the look changes every 2.5-3.5s. So: close a unit at a sentence
+// end once it is long enough, settle for a comma if it runs on, and force a break before
+// it gets long enough to be two scenes.
+const UNIT_MIN_SENTENCE = 2.2;   // close on . ! ? from here
+const UNIT_MIN_CLAUSE = 3.0;     // close on , ; : — from here
+const UNIT_MAX = 4.2;            // never grow a unit past this...
+const UNIT_MIN = 2.0;            // ...unless breaking would leave a stub shorter than this
 
-const SHORT_MIN_SECS = 15;    // under this it is a clip, not a Short
-const SHORT_MAX_SECS = 58;    // over this it stops being a Short at all
+// ---- how a Short becomes Flow clips --------------------------------------------------
+const CLIP_MAX = 10.0;           // Flow's longest render
+
+// ---- what counts as a Short ----------------------------------------------------------
+const SHORT_MIN_SECS = 15, SHORT_MAX_SECS = 58;
 const SWEET_MIN = 20, SWEET_MAX = 45;
 const DEFAULT_COUNT = 8;
+const DEFAULT_CHAR = "own";
 
 const els = {
-  tab:        document.getElementById("tab-shorts"),
-  script:     document.getElementById("shScript"),
-  scriptMeta: document.getElementById("shScriptMeta"),
-  pull:       document.getElementById("shPullScript"),
-  srtFile:    document.getElementById("shSrtFile"),
-  srtMeta:    document.getElementById("shSrtMeta"),
-  srtClear:   document.getElementById("shSrtClear"),
-  count:      document.getElementById("shCount"),
-  buildBtn:   document.getElementById("shBuildBtn"),
-  promptWrap: document.getElementById("shPromptWrap"),
-  promptOut:  document.getElementById("shPromptOut"),
-  promptCopy: document.getElementById("shPromptCopy"),
-  reply:      document.getElementById("shReply"),
-  status:     document.getElementById("shReplyStatus"),
-  list:       document.getElementById("shList"),
-  lineWrap:   document.getElementById("shLinesWrap"),
-  lineBox:    document.getElementById("shLines"),
+  tab:        $("tab-shorts"),
+  srtFile:    $("shSrtFile"),
+  srtMeta:    $("shSrtMeta"),
+  srtClear:   $("shSrtClear"),
+  count:      $("shCount"),
+  buildBtn:   $("shBuildBtn"),
+  promptWrap: $("shPromptWrap"),
+  promptOut:  $("shPromptOut"),
+  promptCopy: $("shPromptCopy"),
+  reply:      $("shReply"),
+  status:     $("shReplyStatus"),
+  list:       $("shList"),
+  lineWrap:   $("shLinesWrap"),
+  lineBox:    $("shLines"),
+  // the clip half
+  work:       $("shWork"),
+  workTitle:  $("shWorkTitle"),
+  workClose:  $("shWorkClose"),
+  clips:      $("mgVideos"),
+  clipTpl:    $("mgVideoTpl"),
+  promptTpl:  $("mgPromptTpl"),
+  fewer:      $("shFewer"),
+  more:       $("shMore"),
+  clipMeta:   $("shClipMeta"),
+  request:    $("mgRequest"),
+  copyReq:    $("mgCopyRequest"),
+  reqStatus:  $("mgRequestStatus"),
+  mgReply:    $("mgReply"),
+  mgStatus:   $("mgReplyStatus"),
+  prompts:    $("mgPrompts"),
+  setupStatus: $("mgSetupStatus"),
 };
 
+let srtText = "";       // raw Transcript.srt
+let units = [];         // [{ text, start, end }] — the numbered lines everything refers to
 let shorts = [];        // [{ n, from, to, score, label, type, hook, why }]  1-based, inclusive
-let srtText = "";       // raw Transcript.srt, when one has been picked
-let lineTimes = [];     // per script line: { start, end } in seconds, or null
+let sel = null;         // the Short whose clips are open, by its n
+let work = {};          // per Short n: { chars, texts, clipCount, reply }
 
-/* ---------------- script ---------------- */
-
-/* Blank lines are dropped and what is left is numbered 1..N. The script file uses blank
-   lines to group beats, and numbering them would mean the numbers in the prompt and the
-   numbers in the file disagree the moment I add one — so the numbering follows the SPOKEN
-   lines, which is also what I count when I read the file myself. */
-function lines() {
-  return els.script.value.replace(/\r\n?/g, "\n").split("\n")
-    .map(s => s.trim()).filter(Boolean);
-}
-
-function wordCount(s) { const t = s.trim(); return t ? t.split(/\s+/).length : 0; }
-
-function secsOf(text) { return wordCount(text) / WPS; }
-
-function fmtSecs(s) { return s < 60 ? s.toFixed(1) + "s" : Math.floor(s / 60) + ":" + (s % 60).toFixed(1).padStart(4, "0"); }
-
-function fmtTC(t) {
-  const h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), s = t % 60;
-  return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + s.toFixed(1).padStart(4, "0");
-}
-
-function tok(s) {
-  return s.toLowerCase()
-    .replace(/<[^>]*>/g, " ")
-    .replace(/[’‘'`´]/g, "")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim().split(/\s+/).filter(Boolean);
-}
-
-/* ---------------- the SRT, for real timecodes ---------------- */
+/* ---------------- transcript -> units ---------------- */
 
 const TIME_RE = /(\d+):(\d{1,2}):(\d{1,2})[,.](\d{1,3})\s*-->\s*(\d+):(\d{1,2}):(\d{1,2})[,.](\d{1,3})/;
 
@@ -102,118 +105,100 @@ function parseSrt(text) {
     const m = line.match(TIME_RE);
     if (m) { flush(); cur = { start: hms(m, 1), end: Math.max(hms(m, 5), hms(m, 1)), text: [] }; }
     else if (!line) flush();
-    else if (cur) cur.text.push(line);
+    else if (cur) cur.text.push(line.replace(/<[^>]*>/g, "").trim());
     // a stray index line sits after a flush, so cur is null and it is ignored
   });
   flush();
-  return cues;
+  return cues.filter(c => c.text.join(" ").trim());
 }
 
-/* Every subtitle word with a time of its own, interpolated inside its cue and weighted by
-   word length — the same rough speech model pipeline.py uses to place scenes. */
-function srtWordStream(cues) {
+/* Merge cues into units. A cue is a subtitle line — "A GUY IN MY COMMENTS" — which is not
+   a thing anyone would animate on its own; two or three of them make a clause that is. */
+function toUnits(cues) {
   const out = [];
+  let cur = null;
   cues.forEach(c => {
-    const toks = tok(c.text.join(" "));
-    if (!toks.length) return;
-    const w = toks.map(t => t.length + 1);
-    const total = w.reduce((a, b) => a + b, 0);
-    const span = Math.max(c.end - c.start, 1e-4);
-    let t = c.start;
-    toks.forEach((tk, i) => {
-      const d = span * (w[i] / total);
-      out.push({ w: tk, t0: t, t1: t + d });
-      t += d;
-    });
+    // Decided BEFORE the cue goes in. Testing afterwards lets a unit overshoot by a whole
+    // cue, and a 7-second unit is two scenes pretending to be one.
+    if (cur && c.end - cur.start > UNIT_MAX && cur.end - cur.start >= UNIT_MIN) {
+      out.push(cur);
+      cur = null;
+    }
+    const text = c.text.join(" ").replace(/\s+/g, " ").trim();
+    if (!cur) cur = { text: text, start: c.start, end: c.end };
+    else { cur.text += " " + text; cur.end = c.end; }
+    const dur = cur.end - cur.start;
+    // a closing quote or bracket hides the full stop in front of it, and a transcript
+    // of someone quoting themselves is full of them
+    const last = cur.text.replace(/["'“”‘’)\]\s]+$/, "").slice(-1);
+    const sentence = ".!?…".indexOf(last) >= 0;
+    const clause = ",;:—–".indexOf(last) >= 0;
+    if ((sentence && dur >= UNIT_MIN_SENTENCE) || (clause && dur >= UNIT_MIN_CLAUSE)) {
+      out.push(cur);
+      cur = null;
+    }
   });
+  if (cur) out.push(cur);
   return out;
 }
 
-/* Hang every script line on the subtitle timeline.
-   The two files hold the same words in the same order but break them differently, so this
-   walks both word streams together and only has to survive the small disagreements a
-   transcription makes (a dropped "the", a heard-wrong word). On a mismatch it looks a
-   short way ahead in each stream and resyncs on the first agreement; if neither finds one
-   it steps both and carries on, which costs one word rather than the rest of the file. */
-function alignTimes(ls, stream) {
-  const A = [];
-  ls.forEach((ln, i) => tok(ln).forEach(w => A.push({ w: w, line: i })));
-  const times = ls.map(() => null);
-  let i = 0, j = 0;
-  while (i < A.length && j < stream.length) {
-    if (A[i].w === stream[j].w) {
-      const k = A[i].line;
-      if (!times[k]) times[k] = { start: stream[j].t0, end: stream[j].t1 };
-      else {
-        times[k].start = Math.min(times[k].start, stream[j].t0);
-        times[k].end = Math.max(times[k].end, stream[j].t1);
-      }
-      i++; j++;
-      continue;
-    }
-    let moved = false;
-    for (let d = 1; d <= 10 && !moved; d++) {
-      if (j + d < stream.length && A[i].w === stream[j + d].w) { j += d; moved = true; }
-      else if (i + d < A.length && A[i + d].w === stream[j].w) { i += d; moved = true; }
-    }
-    if (!moved) { i++; j++; }
-  }
-  return times;
+const durOf = u => u.end - u.start;
+const spanOf = list => list[list.length - 1].end - list[0].start;
+
+function wordCount(s) { const t = String(s).trim(); return t ? t.split(/\s+/).length : 0; }
+
+function fmtSecs(s) {
+  return s < 60 ? s.toFixed(1) + "s"
+                : Math.floor(s / 60) + ":" + (s % 60).toFixed(1).padStart(4, "0");
 }
 
-function rebuildTimes() {
-  const ls = lines();
-  lineTimes = [];
-  if (!srtText || !ls.length) { srtMeta(); return; }
-  lineTimes = alignTimes(ls, srtWordStream(parseSrt(srtText)));
+function fmtTC(t) {
+  const h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), s = t % 60;
+  return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + s.toFixed(1).padStart(4, "0");
+}
+
+function rebuildUnits() {
+  units = srtText ? toUnits(parseSrt(srtText)) : [];
   srtMeta();
+  renderLines();
 }
 
 function srtMeta() {
-  const ls = lines();
   if (!srtText) {
-    els.srtMeta.textContent = "No transcript picked — runtimes below are estimated from the word count.";
+    els.srtMeta.textContent = "No transcript yet — pick Transcript.srt out of the video's folder.";
     els.srtMeta.className = "sh-meta";
     els.srtClear.hidden = true;
     return;
   }
   els.srtClear.hidden = false;
-  const hit = lineTimes.filter(Boolean).length;
-  const pct = ls.length ? Math.round(hit / ls.length * 100) : 0;
-  if (pct >= 80) {
-    els.srtMeta.textContent = "Transcript matched " + hit + " of " + ls.length +
-      " lines (" + pct + "%) — every range below comes back as a real timecode.";
-    els.srtMeta.className = "sh-meta ok";
-  } else {
-    els.srtMeta.textContent = "Transcript only matched " + pct + "% of the script — is this " +
-      "the transcript for THIS video? Timecodes will be patchy.";
+  if (!units.length) {
+    els.srtMeta.textContent = "That file has no readable subtitles in it.";
     els.srtMeta.className = "sh-meta warn";
+    return;
   }
+  const total = units[units.length - 1].end;
+  els.srtMeta.textContent = units.length + " lines, " +
+    wordCount(units.map(u => u.text).join(" ")) + " words, " + fmtTC(total) +
+    " of narration — every candidate comes back as a real timecode.";
+  els.srtMeta.className = "sh-meta ok";
 }
 
-/* The timecode of a 1-based inclusive line range, or null when the SRT cannot place it.
-   Falls inward to the nearest line that WAS placed, so one unmatched line at an edge
-   costs a little accuracy instead of the whole range. */
-function rangeTime(from, to) {
-  if (!lineTimes.length) return null;
-  let a = null, b = null;
-  for (let i = from - 1; i <= to - 1 && a === null; i++) if (lineTimes[i]) a = lineTimes[i].start;
-  for (let i = to - 1; i >= from - 1 && b === null; i--) if (lineTimes[i]) b = lineTimes[i].end;
-  return a === null || b === null || b <= a ? null : { start: a, end: b };
+/* ---------------- the Shorts prompt ---------------- */
+
+/* Each line carries its own length, so Claude can add a range up instead of estimating it
+   from word count — which is the one thing it reliably gets wrong about a spoken script. */
+function numberedScript() {
+  const pad = String(units.length).length;
+  return units.map((u, i) =>
+    String(i + 1).padStart(pad, " ") + " | " + durOf(u).toFixed(1).padStart(4, " ") + "s | " + u.text
+  ).join("\n");
 }
 
-/* ---------------- the prompt ---------------- */
-
-function numberedScript(ls) {
-  const pad = String(ls.length).length;
-  return ls.map((l, i) => String(i + 1).padStart(pad, " ") + " | " + l).join("\n");
-}
-
-function buildPrompt(ls, want) {
+function buildShortsPrompt(want) {
   return [
 "Act as a YouTube Shorts editor.",
 "",
-"Below is the complete voice-over script of a long-form video I have already finished. I want to cut Shorts out of it using the footage and the narration exactly as they are — no re-recording, no reordering. Your job is to find the stretches of this script that stand on their own as Shorts.",
+"Below is the complete narration of a long-form video I have already finished, taken from its subtitle file. I want to cut Shorts out of it using the footage and the narration exactly as they are — no re-recording, no reordering. Your job is to find the stretches that stand on their own as a Short.",
 "",
 "A stretch only works as a Short if ALL of these are true:",
 "",
@@ -222,17 +207,17 @@ function buildPrompt(ls, want) {
 "3. ONE IDEA, AND IT LANDS. Something is opened and then closed inside the range — a question answered, a number revealed, a belief flipped. A stretch that is only setup, or only the conclusion of an argument that happened earlier, is not a Short.",
 "4. IT ENDS ON A PUNCH. The last line is a payoff, a reframe, or a question worth answering in the comments. Never mid-thought, and never trailing into the next topic.",
 "5. IT IS ONE UNBROKEN RUN of line numbers, in order. I am cutting the existing edit, so I cannot skip a line in the middle or stitch two distant parts together.",
-"6. IT FITS. Roughly " + SWEET_MIN + " to " + SWEET_MAX + " seconds spoken, and never more than " + SHORT_MAX_SECS + ". I speak about " + WPS.toFixed(1) + " words a second, so count the words in the range and check before you commit to it.",
+"6. IT FITS. Every line below is printed with how many seconds it takes to say. Add them up: a range should come to roughly " + SWEET_MIN + " to " + SWEET_MAX + " seconds, and never more than " + SHORT_MAX_SECS + ".",
 "",
 "Rank them by how well each one would hold a cold viewer who has never heard of me — not by how important that part is to the long video.",
 "",
 "Most of what you give me should be the self-contained kind above. At most two may be TEASER type: a hook or a promise from the opening that deliberately does not pay off, made to send people to the full video. Mark those honestly so I know what I am looking at.",
 "",
-"--- THE SCRIPT ---",
+"--- THE NARRATION ---",
 "",
-"Every spoken line is numbered. Use these numbers exactly as printed — they are what my app reads to pull the lines back out, so an off-by-one lands me on the wrong cut.",
+"line number | how long it takes to say | the words. It is a transcript, so it is in capitals. Use the line numbers exactly as printed — they are what my app reads to pull the lines back out, so an off-by-one lands me on the wrong cut.",
 "",
-numberedScript(ls),
+numberedScript(),
 "",
 "--- WHAT I WANT ---",
 "",
@@ -251,17 +236,13 @@ numberedScript(ls),
 "Then a blank line before the next one.",
 "",
 "Two more things, after the list:",
-"- Name any part of the script that ALMOST works but needs a line re-recorded, and say which line.",
+"- Name any part that ALMOST works but needs a line re-recorded, and say which line.",
 "- Do not ask me clarifying questions first. Just deliver.",
   ].join("\n");
 }
 
 /* ---------------- reply -> ranges ---------------- */
 
-/* Pinned to the "SHORT n | lines a-b | s/10 | label" shape by the prompt, and forgiving of
-   what the Claude app's copy button tends to carry along: a heading mark, a bullet, bold.
-   The score has to be there — it is the one thing that cannot show up by accident in a
-   line of prose about a Short. */
 const SH_RE = new RegExp(
   "^\\s*(?:#{1,6}\\s*)?(?:[-*]\\s+)?(?:\\*\\*|__)?\\s*SHORT\\s*(\\d{1,2})\\s*(?:\\*\\*|__)?" +
   "\\s*[|:]\\s*(?:lines?\\s*)?(\\d{1,4})\\s*(?:[-\\u2013\\u2014]|to)\\s*(\\d{1,4})" +
@@ -270,14 +251,14 @@ const SH_RE = new RegExp(
 const clean = s => String(s).replace(/\*\*|__/g, "").trim()
   .replace(/^["“”'‘’]+|["“”'‘’]+$/g, "").trim();
 
-function parseReply(text) {
+function parseShorts(text) {
   const out = [];
   let cur = null;
   text.replace(/\r\n?/g, "\n").split("\n").forEach(raw => {
     const m = raw.match(SH_RE);
     if (m) {
-      const from = +m[2], to = +m[3];
-      cur = { n: +m[1], from: Math.min(from, to), to: Math.max(from, to),
+      const a = +m[2], b = +m[3];
+      cur = { n: +m[1], from: Math.min(a, b), to: Math.max(a, b),
               score: m[4], label: clean(m[5]), type: "", hook: "", why: "" };
       out.push(cur);
       return;
@@ -292,19 +273,82 @@ function parseReply(text) {
   return out;
 }
 
-/* ---------------- render ---------------- */
+/* ---------------- a Short -> Flow clips ---------------- */
 
-function rangeText(from, to) {
-  return lines().slice(from - 1, to).join("\n");
+/* Split a run of units into `n` contiguous groups as close to equal as possible, with no
+   group longer than CLIP_MAX. Exact rather than greedy: greedy fills each clip to 10s and
+   leaves the last one a stub, and a 2-second Flow clip is 6 wasted seconds of render. */
+function balanced(list, n) {
+  const m = list.length;
+  if (n > m) return null;
+  const target = spanOf(list) / n;
+  const INF = Infinity;
+  const best = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(INF));
+  const cutAt = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(-1));
+  best[0][m] = 0;
+  for (let k = 1; k <= n; k++) {
+    for (let i = m - 1; i >= 0; i--) {
+      for (let j = i + 1; j <= m; j++) {
+        const d = list[j - 1].end - list[i].start;
+        if (d > CLIP_MAX + 0.05) break;          // groups only get longer from here
+        const rest = best[k - 1][j];
+        if (rest === INF) continue;
+        const c = (d - target) * (d - target) + rest;
+        if (c < best[k][i]) { best[k][i] = c; cutAt[k][i] = j; }
+      }
+    }
+  }
+  if (best[n][0] === INF) return null;
+  const out = [];
+  let i = 0;
+  for (let k = n; k >= 1; k--) { const j = cutAt[k][i]; out.push(list.slice(i, j)); i = j; }
+  return out;
 }
 
-function render() {
-  const ls = lines();
-  const hasReply = els.reply.value.trim().length > 0;
+function autoClipCount(list) {
+  return Math.max(1, Math.ceil(spanOf(list) / CLIP_MAX));
+}
 
-  if (!hasReply) {
+function splitClips(list, n) {
+  for (let k = Math.max(1, n); k <= list.length; k++) {
+    const parts = balanced(list, k);
+    if (parts) return parts;
+  }
+  return [list];        // one unit longer than a Flow clip; the card says so
+}
+
+/* The clips for the selected Short, with my character picks and text edits folded back
+   in. Rebuilt from the transcript every time, so nudging a range or changing the clip
+   count can never leave a stale clip behind. */
+function clipsFor(s) {
+  const list = units.slice(s.from - 1, s.to);
+  if (!list.length) return [];
+  const w = work[s.n] || {};
+  const parts = splitClips(list, w.clipCount || autoClipCount(list));
+  return parts.map((p, i) => ({
+    lines: p.map(u => u.text),
+    text: (w.texts && w.texts[i] != null) ? w.texts[i] : p.map(u => u.text).join("\n"),
+    len: Math.min(CLIP_MAX, Math.round(spanOf(p) * 10) / 10),
+    char: (w.chars && w.chars[i]) || DEFAULT_CHAR,
+    start: p[0].start,
+    end: p[p.length - 1].end,
+  }));
+}
+
+const readLines = t => String(t).split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+
+/* ---------------- render: the candidates ---------------- */
+
+function inRange(s) { return s.from >= 1 && s.to <= units.length; }
+function rangeText(s) { return units.slice(s.from - 1, s.to).map(u => u.text).join("\n"); }
+function rangeTime(s) {
+  return inRange(s) ? { start: units[s.from - 1].start, end: units[s.to - 1].end } : null;
+}
+
+function renderList() {
+  if (!els.reply.value.trim()) {
     els.status.className = "settingsstatus";
-    els.status.textContent = "";
+    els.status.textContent = units.length ? "" : "Pick the transcript first.";
     els.list.innerHTML = "";
     return;
   }
@@ -317,32 +361,29 @@ function render() {
   }
   els.status.className = "settingsstatus ok";
   els.status.textContent = shorts.length + " candidate" + (shorts.length === 1 ? "" : "s") +
-    " — the text under each one is pulled straight from your script, so what you see is " +
-    "exactly what gets said.";
+    " — click one to build its Flow clips.";
 
   els.list.innerHTML = shorts.map((s, i) => {
-    const bad = s.from < 1 || s.to > ls.length;
-    const text = bad ? "" : rangeText(s.from, s.to);
-    const t = bad ? null : rangeTime(s.from, s.to);
-    const secs = t ? t.end - t.start : secsOf(text);
-    const tag = t ? "" : "~";
+    const ok = inRange(s);
+    const text = ok ? rangeText(s) : "";
+    const t = rangeTime(s);
+    const secs = t ? t.end - t.start : 0;
     let lenCls = "", lenNote = "";
     if (secs > SHORT_MAX_SECS) { lenCls = " bad"; lenNote = " — too long for a Short"; }
     else if (secs < SHORT_MIN_SECS) { lenCls = " bad"; lenNote = " — very short"; }
     else if (secs > SWEET_MAX) { lenCls = " warn"; lenNote = " — trim a line or two"; }
 
-    return "<div class='sh-card' data-i='" + i + "'>" +
+    return "<div class='sh-card" + (sel === s.n ? " on" : "") + "' data-i='" + i + "'>" +
       "<div class='sh-head'>" +
         "<span class='sh-score'>" + esc(s.score) + "/10</span>" +
         "<div class='sh-title'><b>" + esc(s.label || ("Short " + s.n)) + "</b>" +
           (s.type ? "<span class='sh-type'>" + esc(s.type) + "</span>" : "") + "</div>" +
-        (bad ? "" : "<span class='sh-len" + lenCls + "'>" + tag + fmtSecs(secs) +
-                    esc(lenNote) + "</span>") +
+        (ok ? "<span class='sh-len" + lenCls + "'>" + fmtSecs(secs) + esc(lenNote) + "</span>" : "") +
       "</div>" +
-      (bad
-        ? "<p class='sh-meta warn'>Lines " + s.from + "-" + s.to + " are outside this script " +
-          "(it has " + ls.length + " lines). Re-paste the script, or the reply drifted.</p>"
-        : "<div class='sh-lines'>" + esc(text) + "</div>") +
+      (ok
+        ? "<div class='sh-lines'>" + esc(text) + "</div>"
+        : "<p class='sh-meta warn'>Lines " + s.from + "-" + s.to + " are outside this transcript " +
+          "(it has " + units.length + " lines). Wrong transcript, or the reply drifted.</p>") +
       "<div class='sh-foot'>" +
         "<span class='sh-meta'>lines " + s.from + "–" + s.to + " · " +
           wordCount(text) + " words" +
@@ -356,8 +397,9 @@ function render() {
           "<button type='button' class='sh-nb' data-act='e-'>−</button>" +
           "<button type='button' class='sh-nb' data-act='e+'>+</button>" +
         "</span>" +
-        "<button type='button' class='sbtn' data-act='copy'>📋 Copy lines</button>" +
         (t ? "<button type='button' class='sbtn' data-act='tc'>⏱ Copy timecode</button>" : "") +
+        (ok ? "<button type='button' class='btn sh-pick' data-act='pick'>" +
+              (sel === s.n ? "✓ Building clips" : "→ Make the clips") + "</button>" : "") +
       "</div>" +
       (s.hook ? "<p class='sh-meta'><b>Hook text:</b> " + esc(s.hook) + "</p>" : "") +
       (s.why ? "<p class='sh-meta'>" + esc(s.why) + "</p>" : "") +
@@ -365,40 +407,186 @@ function render() {
   }).join("");
 
   els.list.querySelectorAll(".sh-card").forEach(card => {
+    const i = +card.dataset.i;
     card.querySelectorAll("[data-act]").forEach(b =>
-      b.addEventListener("click", () => act(+card.dataset.i, b.dataset.act)));
+      b.addEventListener("click", e => { e.stopPropagation(); act(i, b.dataset.act); }));
+    // anywhere on the card picks it, except over the transcript itself: that block is
+    // there to be read and selected, and losing a selection to a tab change is maddening
+    card.addEventListener("click", e => {
+      if (e.target.closest(".sh-lines") || String(window.getSelection())) return;
+      act(i, "pick");
+    });
   });
 }
 
 function act(i, what) {
-  const s = shorts[i], n = lines().length;
-  if (what === "copy") { copyText(rangeText(s.from, s.to)); return; }
+  const s = shorts[i];
   if (what === "tc") {
-    const t = rangeTime(s.from, s.to);
+    const t = rangeTime(s);
     if (t) copyText(fmtTC(t.start) + " → " + fmtTC(t.end) + "   (" +
       fmtSecs(t.end - t.start) + ")   " + (s.label || ("Short " + s.n)));
     return;
   }
+  if (what === "pick") {
+    if (!inRange(s)) return;
+    sel = sel === s.n ? null : s.n;
+    renderList();
+    renderWork();
+    if (sel !== null) els.work.scrollIntoView({ behavior: "smooth", block: "start" });
+    save();
+    return;
+  }
+  // a nudge changes which lines the clips are cut from, so the edits to the old
+  // ones no longer describe anything
   if (what === "s-") s.from = Math.max(1, s.from - 1);
   if (what === "s+") s.from = Math.min(s.to, s.from + 1);
   if (what === "e-") s.to = Math.max(s.from, s.to - 1);
-  if (what === "e+") s.to = Math.min(n, s.to + 1);
-  render();
+  if (what === "e+") s.to = Math.min(units.length, s.to + 1);
+  if (work[s.n]) { delete work[s.n].texts; delete work[s.n].clipCount; }
+  renderList();
+  renderWork();
   save();
 }
 
-function renderLines() {
-  const ls = lines();
-  els.lineWrap.hidden = !ls.length;
-  els.lineBox.textContent = numberedScript(ls);
+/* ---------------- render: the clips for the chosen Short ---------------- */
+
+function selected() { return shorts.find(s => s.n === sel) || null; }
+
+function renderWork() {
+  const s = selected();
+  els.work.hidden = !s || !inRange(s);
+  if (els.work.hidden) { els.clips.replaceChildren(); els.prompts.replaceChildren(); return; }
+
+  const w = work[s.n] || (work[s.n] = {});
+  if (typeof w.reply !== "string") w.reply = "";
+  const clips = clipsFor(s);
+  const t = rangeTime(s);
+
+  els.workTitle.textContent = (s.label || ("Short " + s.n)) + " — " +
+    fmtTC(t.start) + " → " + fmtTC(t.end) + " · " + fmtSecs(t.end - t.start);
+
+  // ---- the clip cards
+  els.clips.replaceChildren();
+  clips.forEach((c, i) => {
+    const node = els.clipTpl.content.firstElementChild.cloneNode(true);
+    node.querySelector(".mg-video-title").textContent = "Clip " + (i + 1);
+    node.querySelector(".sh-cliplen").textContent = MG.lenLabel(c.len) + "s";
+    node.querySelectorAll(".mg-char input").forEach(r => {
+      r.name = "sh-char-" + s.n + "-" + i;
+      r.checked = r.value === c.char;
+      r.addEventListener("change", () => {
+        w.chars = clips.map((x, k) => k === i ? r.value : x.char);
+        renderWork(); save();
+      });
+    });
+    const box = node.querySelector(".mg-script");
+    box.value = c.text;
+    box.addEventListener("input", () => {
+      w.texts = clips.map((x, k) => k === i ? box.value : x.text);
+      refreshRequest(); save();
+    });
+    const note = clipNote(clips, i);
+    const meta = node.querySelector(".mg-meta");
+    meta.textContent = note.text;
+    meta.classList.toggle("warn", note.warn);
+    els.clips.appendChild(node);
+  });
+
+  const longest = Math.max.apply(null, clips.map(c => c.len));
+  els.clipMeta.textContent = clips.length + " clip" + (clips.length === 1 ? "" : "s") +
+    ", longest " + MG.lenLabel(longest) + "s" +
+    (longest > CLIP_MAX + 0.05 ? " — longer than Flow can render" : "");
+  els.clipMeta.classList.toggle("warn", longest > CLIP_MAX + 0.05);
+  // asking for fewer clips is refused rather than ignored when the line boundaries do not
+  // allow it: at 10s a clip, a run often has exactly one legal shape
+  const list = units.slice(s.from - 1, s.to);
+  els.fewer.disabled = clips.length <= 1 ||
+    splitClips(list, clips.length - 1).length >= clips.length;
+  els.more.disabled = clips.length >= list.length;
+
+  els.mgReply.value = w.reply;
+  refreshRequest();
 }
 
-function scriptMeta() {
-  const ls = lines();
-  const n = wordCount(ls.join(" "));
-  els.scriptMeta.textContent = ls.length
-    ? "— " + ls.length + " spoken lines, " + n + " words (~" + fmtSecs(n / WPS) + " of narration)"
-    : "— required, empty right now";
+function clipNote(clips, i) {
+  const c = clips[i];
+  const n = readLines(c.text).length;
+  if (!n) return { text: "Empty, skipped", warn: true };
+  const win = MG.sceneWindow(c.len, i > 0);
+  const per = (win[1] - win[0]) / n;
+  let text = n + (n === 1 ? " scene" : " scenes") + " · " + MG.fmt(per) +
+    "s each · " + fmtTC(c.start) + " → " + fmtTC(c.end);
+  let warn = false;
+  // Only a real squeeze is worth flagging, and splitting is NOT the cure: every extra
+  // clip spends another second on its opening and closing hold, so more clips leave
+  // slightly less scene time, not more. Dense narration is just dense.
+  if (per < MG.MIN_SCENE - 0.5) {
+    warn = true;
+    text = n + " scenes in " + MG.lenLabel(c.len) + "s is only " + MG.fmt(per) +
+      "s each — the narration is fast here, so expect simpler scenes";
+  }
+  if (i > 0 && c.char !== clips[i - 1].char) text += " · character changes here";
+  return { text: text, warn: warn };
+}
+
+function refreshRequest() {
+  const s = selected();
+  if (!s) return;
+  const w = work[s.n] || {};
+  const filled = clipsFor(s)
+    .map(c => ({ lines: readLines(c.text), len: c.len, char: c.char }))
+    .filter(c => c.lines.length);
+
+  els.request.value = filled.length ? MG.buildRequest(filled) : "";
+  els.copyReq.disabled = !filled.length;
+  els.reqStatus.textContent = "";
+
+  const scenes = MG.parseReply(w.reply || "");
+  const found = filled.filter((_, i) => scenes[i + 1]).length;
+  if (!(w.reply || "").trim()) {
+    els.mgStatus.textContent = "Paste the reply to build the Flow prompts.";
+    els.mgStatus.classList.remove("warn");
+  } else {
+    els.mgStatus.textContent = "Found scenes for " + found + " of " + filled.length +
+      (filled.length === 1 ? " clip." : " clips.");
+    els.mgStatus.classList.toggle("warn", found !== filled.length);
+  }
+  renderPrompts(filled, scenes);
+}
+
+function renderPrompts(filled, scenes) {
+  els.prompts.replaceChildren();
+  filled.forEach((v, i) => {
+    const mode = MG.characterMode(filled, i);
+    const node = els.promptTpl.content.firstElementChild.cloneNode(true);
+    const render = MG.renderSeconds(v.len);
+    node.querySelector(".mg-prompt-title").textContent =
+      "Clip " + (i + 1) + " — " + MG.lenLabel(v.len) + "s · " + MG.NAMES[v.char].label;
+    node.querySelector(".mg-attach").textContent =
+      "Attach in Flow: " + MG.attachLine(v, mode, i, filled[i - 1]);
+    const trim = node.querySelector(".mg-trim");
+    if (render !== v.len) {
+      const end = MG.sceneWindow(v.len, false)[1];
+      trim.textContent = "In Flow pick " + render + "s, then trim the download to its first " +
+        MG.fmt(v.len) + "s. The action ends at " + MG.fmt(end) +
+        "s; everything after is the frozen final frame.";
+      trim.hidden = false;
+    }
+    const box = node.querySelector(".mg-prompt-text");
+    const button = node.querySelector(".mg-copy-prompt");
+    if (scenes[i + 1]) box.value = MG.buildFlowPrompt(v, mode, scenes[i + 1]);
+    else {
+      box.value = "";
+      box.placeholder = "Waiting for this clip's scenes in Claude's reply.";
+      button.disabled = true;
+    }
+    els.prompts.appendChild(node);
+  });
+}
+
+function renderLines() {
+  els.lineWrap.hidden = !units.length;
+  els.lineBox.textContent = numberedScript();
 }
 
 /* ---------------- state ---------------- */
@@ -406,8 +594,8 @@ function scriptMeta() {
 function save() {
   try {
     localStorage.setItem(KEY, JSON.stringify({
-      script: els.script.value, reply: els.reply.value, srt: srtText,
-      count: els.count.value, shorts: shorts,
+      srt: srtText, reply: els.reply.value, count: els.count.value,
+      shorts: shorts, sel: sel, work: work,
     }));
   } catch (e) { /* a full or blocked store is not worth a toast on every keystroke */ }
 }
@@ -418,32 +606,15 @@ function load() {
 
 /* ---------------- events ---------------- */
 
-function scriptChanged() {
-  scriptMeta();
-  renderLines();
-  rebuildTimes();
-  render();
-  save();
-}
-
-els.script.addEventListener("input", scriptChanged);
-
-els.pull.addEventListener("click", () => {
-  const v = (document.getElementById("voScript") || {}).value || "";
-  if (!v.trim()) { toast("The 🎬 Create Video tab has no script in it yet", true); return; }
-  els.script.value = v;
-  scriptChanged();
-  toast("Script pulled in ✓");
-});
-
 els.srtFile.addEventListener("change", () => {
   const f = els.srtFile.files && els.srtFile.files[0];
   if (!f) return;
   const r = new FileReader();
   r.onload = () => {
     srtText = String(r.result || "");
-    rebuildTimes();
-    render();
+    rebuildUnits();
+    renderList();
+    renderWork();
     save();
   };
   r.readAsText(f);
@@ -452,17 +623,18 @@ els.srtFile.addEventListener("change", () => {
 els.srtClear.addEventListener("click", () => {
   srtText = "";
   els.srtFile.value = "";
-  lineTimes = [];
-  srtMeta(); render(); save();
+  rebuildUnits();
+  renderList();
+  renderWork();
+  save();
 });
 
 els.count.addEventListener("change", save);
 
 els.buildBtn.addEventListener("click", () => {
-  const ls = lines();
-  if (!ls.length) { toast("Paste the finished voice-over script first", true); return; }
+  if (!units.length) { toast("Pick the video's Transcript.srt first", true); return; }
   const want = Math.max(1, Math.min(20, +els.count.value || DEFAULT_COUNT));
-  els.promptOut.value = buildPrompt(ls, want);
+  els.promptOut.value = buildShortsPrompt(want);
   els.promptWrap.style.display = "block";
   els.promptWrap.scrollIntoView({ behavior: "smooth", block: "nearest" });
 });
@@ -470,9 +642,58 @@ els.buildBtn.addEventListener("click", () => {
 els.promptCopy.addEventListener("click", () => copyText(els.promptOut.value));
 
 els.reply.addEventListener("input", () => {
-  shorts = parseReply(els.reply.value);
-  render();
+  shorts = parseShorts(els.reply.value);
+  if (!shorts.some(s => s.n === sel)) sel = null;
+  renderList();
+  renderWork();
   save();
+});
+
+els.workClose.addEventListener("click", () => {
+  sel = null; renderList(); renderWork(); save();
+});
+
+els.fewer.addEventListener("click", () => bumpClips(-1));
+els.more.addEventListener("click", () => bumpClips(1));
+
+function bumpClips(d) {
+  const s = selected();
+  if (!s) return;
+  const w = work[s.n] || (work[s.n] = {});
+  const now = clipsFor(s).length;
+  const want = Math.max(1, now + d);
+  if (splitClips(units.slice(s.from - 1, s.to), want).length === now) return;
+  w.clipCount = want;
+  delete w.texts;                       // the clips are cut differently now
+  renderWork();
+  save();
+}
+
+els.copyReq.addEventListener("click", () => {
+  if (!els.request.value) return;
+  copyText(els.request.value);
+  els.reqStatus.textContent = "Copied. Paste it into a new chat in your Claude Project.";
+});
+
+els.mgReply.addEventListener("input", () => {
+  const s = selected();
+  if (!s) return;
+  (work[s.n] || (work[s.n] = {})).reply = els.mgReply.value;
+  refreshRequest();
+  save();
+});
+
+els.prompts.addEventListener("click", e => {
+  const button = e.target.closest(".mg-copy-prompt");
+  if (!button) return;
+  copyText(button.closest(".mg-prompt").querySelector(".mg-prompt-text").value);
+  button.textContent = "✓ Copied";
+  setTimeout(() => { button.textContent = "📋 Copy"; }, 1500);
+});
+
+$("mgCopyInstructions").addEventListener("click", () => {
+  copyText(MG.PROJECT_INSTRUCTIONS);
+  els.setupStatus.textContent = "Copied. Paste it into your Claude Project's instructions.";
 });
 
 // Only while this tab is showing — the other tabs have their own boxes.
@@ -487,17 +708,18 @@ document.addEventListener("keydown", e => {
 
 const saved = load();
 if (saved) {
-  if (typeof saved.script === "string") els.script.value = saved.script;
-  if (typeof saved.reply === "string") els.reply.value = saved.reply;
   if (typeof saved.srt === "string") srtText = saved.srt;
+  if (typeof saved.reply === "string") els.reply.value = saved.reply;
   if (saved.count) els.count.value = saved.count;
+  if (saved.work && typeof saved.work === "object") work = saved.work;
+  if (typeof saved.sel === "number") sel = saved.sel;
 }
-scriptMeta();
-renderLines();
-rebuildTimes();
+rebuildUnits();
 // the saved ranges carry my nudges; fall back to re-reading the reply
 shorts = (saved && Array.isArray(saved.shorts) && saved.shorts.length)
-  ? saved.shorts : parseReply(els.reply.value);
-render();
+  ? saved.shorts : parseShorts(els.reply.value);
+if (!shorts.some(s => s.n === sel)) sel = null;
+renderList();
+renderWork();
 
 })();

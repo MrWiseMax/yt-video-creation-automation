@@ -9,7 +9,6 @@
 <body>
 <div class="toptabs">
   <button class="toptab active" data-tab="create">🎬 Create Video</button>
-  <button class="toptab" data-tab="mg">🎞️ MG Prompt Gen</button>
   <button class="toptab" data-tab="shorts">✂️ Shorts Finder</button>
   <button class="toptab" data-tab="post">📤 Post to YouTube</button>
   <span class="toptab-sep"></span>
@@ -444,16 +443,19 @@
   </main>
 </div>
 
-<!-- ======================= TAB: MG PROMPT GEN ======================= -->
-<div class="tabpanel" id="tab-mg">
+<!-- ======================= TAB: SHORTS FINDER ======================= -->
+<div class="tabpanel" id="tab-shorts">
   <main class="studiopage">
     <div class="pagehead">
       <div>
-        <span class="step-tag">Shorts · motion-graphics clips</span>
-        <h2>🎞️ MG Prompt Gen</h2>
-        <p class="lede">Fill in the videos, copy the request into a new chat in your Claude Project, paste
-        Claude's reply back here, then copy each Flow prompt. It all goes through the Claude app, so it
-        costs no API credits.</p>
+        <span class="step-tag">Shorts · find them, then build the clips</span>
+        <h2>✂️ Shorts Finder</h2>
+        <p class="lede">Drop in the video's <span class="filename">Transcript.srt</span> and it does the
+        whole Shorts job. First it builds a prompt that hunts for the stretches standing on their own as a
+        Short — Claude answers with <b>line numbers</b>, so what you see is the transcript word for word,
+        with real timecodes to scrub to. Then <b>click a candidate</b> and it cuts that stretch into
+        Flow-sized clips, measures each one's length off the timings, and builds the motion-graphics prompts.
+        Both steps run in the Claude app, so neither costs API credits.</p>
       </div>
       <div class="mg-setup">
         <button type="button" class="btn secondary" id="mgCopyInstructions">📋 Copy project instructions</button>
@@ -461,97 +463,10 @@
       </div>
     </div>
 
-    <div class="mg-grid">
-      <section>
-        <div id="mgVideos"></div>
-        <div class="inline">
-          <button type="button" class="btn secondary" id="mgAddVideo">+ Add video</button>
-          <button type="button" class="btn secondary" id="mgClearAll">Clear all</button>
-        </div>
-        <p class="mg-hint">Tip: paste a whole script with blank lines between the parts and it fills the
-        videos for you. <kbd>Ctrl</kbd> + <kbd>Enter</kbd> copies the request.</p>
-      </section>
-
-      <section>
-        <div class="card">
-          <div class="mg-cardhead">
-            <h3>1. Request for Claude</h3>
-            <button type="button" class="btn" id="mgCopyRequest">📋 Copy request</button>
-          </div>
-          <p id="mgRequestStatus" class="mg-status" role="status"></p>
-          <textarea id="mgRequest" class="mono" rows="7" readonly placeholder="Paste your voiceover text to build the request."></textarea>
-        </div>
-        <div class="card">
-          <h3>2. Claude's reply</h3>
-          <textarea id="mgReply" class="mono" rows="6" placeholder="Paste Claude's whole reply here"></textarea>
-          <p id="mgReplyStatus" class="mg-meta"></p>
-        </div>
-        <div id="mgPrompts"></div>
-      </section>
-    </div>
-  </main>
-
-  <template id="mgVideoTpl">
-    <div class="card mg-video">
-      <div class="mg-video-head">
-        <h3 class="mg-video-title">Video 1</h3>
-        <div class="mg-seg mg-char" role="radiogroup" aria-label="Character">
-          <label title="My own cartoon character"><input type="radio" value="own"><span><img src="my-own-character.jpg" alt="" onerror="this.remove()">My character</span></label>
-          <label title="1950s office worker in a dark suit and fedora"><input type="radio" value="default"><span>Default man</span></label>
-        </div>
-        <div class="mg-seg mg-len" role="radiogroup" aria-label="Video length">
-          <label><input type="radio" value="10"><span>10s</span></label>
-          <label title="Made as a 10s clip in Flow, then trimmed to 9s"><input type="radio" value="9"><span>9s</span></label>
-          <label><input type="radio" value="8"><span>8s</span></label>
-          <label title="Made as an 8s clip in Flow, then trimmed to 7s"><input type="radio" value="7"><span>7s</span></label>
-        </div>
-        <button type="button" class="mg-remove" title="Remove this video" aria-label="Remove this video">✕</button>
-      </div>
-      <textarea class="mg-script" rows="4" placeholder="Voiceover text, one line per row"></textarea>
-      <p class="mg-meta"></p>
-    </div>
-  </template>
-
-  <template id="mgPromptTpl">
-    <div class="card mg-prompt">
-      <div class="mg-cardhead">
-        <h3 class="mg-prompt-title">Video 1</h3>
-        <button type="button" class="btn mg-copy-prompt">📋 Copy</button>
-      </div>
-      <p class="mg-attach"></p>
-      <p class="mg-trim" hidden></p>
-      <textarea class="mg-prompt-text mono" rows="9" readonly></textarea>
-    </div>
-  </template>
-</div>
-
-<!-- ======================= TAB: SHORTS FINDER ======================= -->
-<div class="tabpanel" id="tab-shorts">
-  <main class="studiopage">
-    <div class="pagehead">
-      <div>
-        <span class="step-tag">Shorts · find the cuts</span>
-        <h2>✂️ Shorts Finder</h2>
-        <p class="lede">Paste the finished script of a long video and it builds a prompt that hunts for the
-        stretches that stand on their own as a Short. Claude answers with <b>line numbers</b>, so the text you
-        see below is pulled straight out of your own script — word for word, with a real runtime. Add the
-        video's <span class="filename">Transcript.srt</span> and every candidate comes back as a
-        <b>timecode you can scrub straight to</b>. It all runs in the Claude app, so it costs no API credits.</p>
-      </div>
-    </div>
-
     <div class="card">
-      <label>Finished voice-over script <span class="lbl-note">(paste all of
-        <span class="filename">voice-over-script.txt</span>)</span>
-        <span class="lbl-note" id="shScriptMeta"></span></label>
-      <textarea id="shScript" class="mono" rows="7" placeholder="Paste the whole script here — one spoken line per row."></textarea>
-      <div class="sh-controls">
-        <button type="button" class="btn secondary" id="shPullScript">↙ Use the script from 🎬 Create Video</button>
-      </div>
-
-      <label class="sh-gap">Transcript <span class="lbl-note">(optional — pick
-        <span class="filename">Transcript.srt</span> out of the video's folder and the candidates come back as
-        exact timecodes instead of estimates; the file stays on your computer)</span></label>
+      <label>Transcript <span class="lbl-note">(pick <span class="filename">Transcript.srt</span> out of the
+        video's folder — it carries the words and the timing, so it is the only thing this tab needs.
+        The file stays on your computer)</span></label>
       <div class="sh-controls">
         <input type="file" id="shSrtFile" accept=".srt,text/plain">
         <button type="button" class="sbtn" id="shSrtClear" hidden>Clear</button>
@@ -572,7 +487,7 @@
     </div>
 
     <div class="card">
-      <h3>Claude's reply</h3>
+      <h3>1. Claude's reply — the Shorts</h3>
       <label for="shReply">Paste it whole <span class="lbl-note">(the line numbers in it turn into the cut
         list below — nudge any range a line either way with the − and + buttons)</span></label>
       <textarea id="shReply" class="mono" rows="5" placeholder="Paste Claude's whole reply here"></textarea>
@@ -581,11 +496,75 @@
 
     <div id="shList" class="sh-list"></div>
 
+    <section id="shWork" hidden>
+      <div class="sh-workhead">
+        <h3 id="shWorkTitle"></h3>
+        <button type="button" class="sbtn" id="shWorkClose">✕ Close</button>
+      </div>
+      <div class="mg-grid">
+        <section>
+          <div id="mgVideos"></div>
+          <div class="sh-controls">
+            <span class="sh-meta" id="shClipMeta"></span>
+            <button type="button" class="sh-nb" id="shFewer" title="Fewer, longer clips">−</button>
+            <button type="button" class="sh-nb" id="shMore" title="More, shorter clips">+</button>
+          </div>
+          <p class="mg-hint">Every length is measured off the transcript, so there is nothing to pick.
+          − and + trade fewer, longer clips against more, shorter ones — Flow charges per clip, and a
+          longer one carries more of the story.</p>
+        </section>
+
+        <section>
+          <div class="card">
+            <div class="mg-cardhead">
+              <h3>2. Request for Claude</h3>
+              <button type="button" class="btn" id="mgCopyRequest">📋 Copy request</button>
+            </div>
+            <p id="mgRequestStatus" class="mg-status" role="status"></p>
+            <textarea id="mgRequest" class="mono" rows="7" readonly placeholder="Pick a candidate above."></textarea>
+          </div>
+          <div class="card">
+            <h3>3. Claude's reply — the scenes</h3>
+            <textarea id="mgReply" class="mono" rows="6" placeholder="Paste Claude's whole reply here"></textarea>
+            <p id="mgReplyStatus" class="mg-meta"></p>
+          </div>
+          <div id="mgPrompts"></div>
+        </section>
+      </div>
+    </section>
+
     <details class="card sh-gap" id="shLinesWrap" hidden>
-      <summary>The numbered script</summary>
+      <summary>The numbered transcript</summary>
       <pre class="sh-script" id="shLines"></pre>
     </details>
   </main>
+
+  <template id="mgVideoTpl">
+    <div class="card mg-video">
+      <div class="mg-video-head">
+        <h3 class="mg-video-title">Clip 1</h3>
+        <span class="sh-cliplen"></span>
+        <div class="mg-seg mg-char" role="radiogroup" aria-label="Character">
+          <label title="My own cartoon character"><input type="radio" value="own"><span><img src="my-own-character.jpg" alt="" onerror="this.remove()">My character</span></label>
+          <label title="1950s office worker in a dark suit and fedora"><input type="radio" value="default"><span>Default man</span></label>
+        </div>
+      </div>
+      <textarea class="mg-script" rows="4" placeholder="Voiceover text, one line per scene"></textarea>
+      <p class="mg-meta"></p>
+    </div>
+  </template>
+
+  <template id="mgPromptTpl">
+    <div class="card mg-prompt">
+      <div class="mg-cardhead">
+        <h3 class="mg-prompt-title">Clip 1</h3>
+        <button type="button" class="btn mg-copy-prompt">📋 Copy</button>
+      </div>
+      <p class="mg-attach"></p>
+      <p class="mg-trim" hidden></p>
+      <textarea class="mg-prompt-text mono" rows="9" readonly></textarea>
+    </div>
+  </template>
 </div>
 
 <!-- ======================= TAB: OUTLIER RADAR ======================= -->
@@ -724,7 +703,7 @@
 <script src="js/studio-shared.js"></script>
 <script src="js/radar.js"></script>
 <script src="js/packaging.js"></script>
-<script src="js/mg-prompt-gen.js"></script>
+<script src="js/mg-engine.js"></script>
 <script src="js/shorts-finder.js"></script>
 </body>
 </html>

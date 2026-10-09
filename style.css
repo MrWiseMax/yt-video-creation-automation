@@ -375,3 +375,15 @@ kbd{padding:0 5px; border:1px solid var(--border); border-radius:4px; background
 #shLinesWrap summary{cursor:pointer; color:#fff; font-size:15.5px; font-weight:700;}
 .sh-script{white-space:pre-wrap; font-family:ui-monospace, Consolas, monospace; font-size:12.5px;
   color:var(--muted); max-height:380px; overflow:auto; margin-top:10px;}
+
+/* the clip workbench, opened by clicking a candidate */
+.sh-card{cursor:pointer;}
+.sh-card.on{border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent);}
+.sh-card .sh-lines, .sh-card .sh-foot{cursor:auto;}
+.sh-pick{margin-top:0; padding:7px 14px; font-size:13px;}
+.sh-workhead{display:flex; align-items:center; gap:12px; margin:26px 0 14px;
+  padding-top:20px; border-top:1px solid var(--border);}
+.sh-workhead h3{flex:1; min-width:0; font-size:16px; color:#fff;}
+.sh-cliplen{flex:none; font-size:12.5px; font-weight:700; color:var(--accent); background:var(--bg);
+  border:1px solid var(--border); border-radius:99px; padding:1px 9px; font-variant-numeric:tabular-nums;}
+.sh-controls .sh-meta{margin:0;}
