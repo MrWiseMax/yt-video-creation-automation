@@ -298,9 +298,15 @@ select:focus{outline:none; border-color:var(--accent-dim);}
 
 /* ================= MG Prompt Gen tab ================= */
 /* Everything is mg- prefixed: .panel and .seg already mean something else in this app. */
-.mg-setup{display:flex; flex-direction:column; align-items:flex-end; gap:6px;}
-.mg-setup .btn{margin-top:0;}
-.mg-setup small{font-size:12px; color:var(--muted);}
+/* Fixed width, and the status line lifted OUT of the flow: the message that lands here on
+   a click used to resize the block and shove the whole pagehead about. Reserving lines for
+   it only moves the problem to whichever message needs one more, so it is positioned
+   instead and the padding below holds its space. */
+.mg-setup{position:relative; display:flex; flex-direction:column; align-items:flex-end;
+  gap:6px; width:238px; padding-bottom:36px;}
+.mg-setup .btn{margin-top:0; width:100%; justify-content:center;}
+.mg-setup small{position:absolute; left:0; right:0; bottom:0; font-size:12px;
+  color:var(--muted); text-align:right;}
 .mg-grid{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:18px; align-items:start;}
 .mg-grid .inline .btn{margin-top:0;}
 .mg-cardhead{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px;}
@@ -330,8 +336,6 @@ textarea.mg-script{min-height:96px;}
 .mg-meta{margin:6px 0 0; font-size:12.5px; color:var(--muted);}
 .mg-meta.warn{color:var(--warn);}
 .mg-status{min-height:20px; margin:0 0 6px; font-size:13px; color:var(--accent);}
-.mg-attach{margin:0 0 8px; font-size:13px; color:var(--muted);}
-.mg-trim{margin:-4px 0 8px; font-size:13px; color:var(--warn);}
 .mg-hint{margin:12px 0 0; font-size:13px; color:var(--muted);}
 kbd{padding:0 5px; border:1px solid var(--border); border-radius:4px; background:var(--code-bg);
   font:12px Consolas, monospace;}
@@ -342,8 +346,6 @@ kbd{padding:0 5px; border:1px solid var(--border); border-radius:4px; background
 .sh-controls{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px;}
 .sh-controls label{margin:0;}
 .sh-controls .btn{margin-top:0;}
-.sh-controls input[type=number]{width:84px; flex:none;}
-.sh-controls input[type=file]{flex:1; min-width:200px;}
 .sh-gap{margin-top:18px;}
 .sh-meta{margin:6px 0 0; font-size:12.5px; color:var(--muted);}
 .sh-meta.ok{color:var(--accent);}
@@ -368,13 +370,6 @@ kbd{padding:0 5px; border:1px solid var(--border); border-radius:4px; background
 .sh-foot .sh-meta{margin:0; flex:1; min-width:170px;}
 .sh-foot .sh-meta b{color:var(--accent); font-variant-numeric:tabular-nums;}
 .sh-foot .sbtn{margin:0;}
-.sh-nudge{display:inline-flex; align-items:center; gap:4px; font-size:12px; color:var(--muted);}
-.sh-nb{background:var(--panel2); border:1px solid var(--border); color:var(--text); border-radius:6px;
-  width:26px; height:26px; cursor:pointer; font-size:13px; line-height:1; font-family:inherit;}
-.sh-nb:hover{border-color:var(--accent-dim); color:var(--accent);}
-#shLinesWrap summary{cursor:pointer; color:#fff; font-size:15.5px; font-weight:700;}
-.sh-script{white-space:pre-wrap; font-family:ui-monospace, Consolas, monospace; font-size:12.5px;
-  color:var(--muted); max-height:380px; overflow:auto; margin-top:10px;}
 
 /* the clip workbench, opened by clicking a candidate */
 .sh-card{cursor:pointer;}
@@ -423,3 +418,15 @@ input[type=file]::file-selector-button{margin-right:10px; padding:7px 13px; curs
 input[type=file]::file-selector-button:hover{border-color:var(--accent-dim);}
 
 .sh-clipseg span{min-width:34px; justify-content:center; font-variant-numeric:tabular-nums;}
+
+/* folding the candidate list away once one of them is being built */
+.sh-fold{display:flex; align-items:center; gap:9px; width:100%; margin-bottom:12px; padding:8px 12px;
+  background:var(--panel2); border:1px solid var(--border); border-radius:10px; cursor:pointer;
+  color:var(--muted); font:inherit; font-size:13px; font-weight:700; text-align:left;}
+.sh-fold:hover{border-color:var(--accent-dim); color:var(--text);}
+.sh-chev{display:inline-block; color:var(--accent); font-size:12px; transition:transform .25s ease;}
+.sh-fold[aria-expanded="false"] .sh-chev{transform:rotate(-90deg);}
+/* 1fr -> 0fr animates to the content's own height without hard-coding one */
+.sh-listwrap{display:grid; grid-template-rows:1fr; transition:grid-template-rows .3s ease;}
+.sh-listwrap > *{min-height:0; overflow:hidden;}
+.sh-listwrap.folded{grid-template-rows:0fr;}

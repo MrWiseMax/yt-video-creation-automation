@@ -72,8 +72,9 @@ const els = {
   reply:      $("shReply"),
   status:     $("shReplyStatus"),
   list:       $("shList"),
-  lineWrap:   $("shLinesWrap"),
-  lineBox:    $("shLines"),
+  fold:       $("shFold"),
+  foldText:   $("shFoldText"),
+  listWrap:   $("shListWrap"),
   // the clip half
   work:       $("shWork"),
   workTitle:  $("shWorkTitle"),
@@ -81,9 +82,6 @@ const els = {
   clips:      $("mgVideos"),
   clipTpl:    $("mgVideoTpl"),
   promptTpl:  $("mgPromptTpl"),
-  fewer:      $("shFewer"),
-  more:       $("shMore"),
-  clipMeta:   $("shClipMeta"),
   request:    $("mgRequest"),
   copyReq:    $("mgCopyRequest"),
   reqStatus:  $("mgRequestStatus"),
@@ -99,7 +97,8 @@ let units = [];         // [{ text, start, end }] — the numbered lines everyth
 let shorts = [];        // [{ n, from, to, score, label, type, hook, why }]  1-based, inclusive
 let clipTarget = DEFAULT_CLIPS;   // how many Flow clips I want each Short built from
 let sel = null;         // the Short whose clips are open, by its n
-let work = {};          // per Short n: { chars, texts, clipCount, reply }
+let folded = false;     // the candidate list, once one of them is being built
+let work = {};          // per Short n: { chars, texts, reply }
 
 /* ---------------- transcript -> units ---------------- */
 
@@ -173,7 +172,6 @@ function fmtTC(t) {
 function rebuildUnits() {
   units = srtText ? toUnits(parseSrt(srtText)) : [];
   srtMeta();
-  renderLines();
 }
 
 function srtMeta() {
@@ -398,7 +396,7 @@ function clipsFor(s) {
   const w = work[s.n] || {};
   // the setting is a wish, not a promise: splitClips() walks up from it when the line
   // boundaries cannot be made to fit, which is why each card prints what really came out
-  const parts = splitClips(list, w.clipCount || clipTarget);
+  const parts = splitClips(list, clipTarget);
   return parts.map((p, i) => ({
     lines: p.map(u => u.text),
     text: (w.texts && w.texts[i] != null) ? w.texts[i] : p.map(u => u.text).join("\n"),
@@ -466,15 +464,6 @@ function renderList() {
           (clips ? " · <span class='" + (clips === win.n ? "" : "warn") + "'>" +
                    clips + " clip" + (clips === 1 ? "" : "s") + "</span>" : "") +
         "</span>" +
-        "<span class='sh-nudge'>start" +
-          "<button type='button' class='sh-nb' data-act='s-'>−</button>" +
-          "<button type='button' class='sh-nb' data-act='s+'>+</button>" +
-        "</span>" +
-        "<span class='sh-nudge'>end" +
-          "<button type='button' class='sh-nb' data-act='e-'>−</button>" +
-          "<button type='button' class='sh-nb' data-act='e+'>+</button>" +
-        "</span>" +
-        (t ? "<button type='button' class='sbtn' data-act='tc'>⏱ Copy timecode</button>" : "") +
         (ok ? "<button type='button' class='btn sh-pick' data-act='pick'>" +
               (sel === s.n ? "✓ Building clips" : "→ Make the clips") + "</button>" : "") +
       "</div>" +
@@ -487,43 +476,38 @@ function renderList() {
   els.list.querySelectorAll(".sh-card").forEach(card => {
     const i = +card.dataset.i;
     card.querySelectorAll("[data-act]").forEach(b =>
-      b.addEventListener("click", e => { e.stopPropagation(); act(i, b.dataset.act); }));
+      b.addEventListener("click", e => { e.stopPropagation(); pick(i); }));
     // anywhere on the card picks it, except over the transcript itself: that block is
     // there to be read and selected, and losing a selection to a tab change is maddening
     card.addEventListener("click", e => {
       if (e.target.closest(".sh-lines") || String(window.getSelection())) return;
-      act(i, "pick");
+      pick(i);
     });
   });
 }
 
-function act(i, what) {
+function pick(i) {
   const s = shorts[i];
-  if (what === "tc") {
-    const t = rangeTime(s);
-    if (t) copyText(fmtTC(t.start) + " → " + fmtTC(t.end) + "   (" +
-      fmtSecs(t.end - t.start) + ")   " + (s.label || ("Short " + s.n)));
-    return;
-  }
-  if (what === "pick") {
-    if (!inRange(s)) return;
-    sel = sel === s.n ? null : s.n;
-    renderList();
-    renderWork();
-    if (sel !== null) els.work.scrollIntoView({ behavior: "smooth", block: "start" });
-    save();
-    return;
-  }
-  // a nudge changes which lines the clips are cut from, so the edits to the old
-  // ones no longer describe anything
-  if (what === "s-") s.from = Math.max(1, s.from - 1);
-  if (what === "s+") s.from = Math.min(s.to, s.from + 1);
-  if (what === "e-") s.to = Math.max(s.from, s.to - 1);
-  if (what === "e+") s.to = Math.min(units.length, s.to + 1);
-  if (work[s.n]) { delete work[s.n].texts; delete work[s.n].clipCount; }
+  if (!inRange(s)) return;
+  sel = sel === s.n ? null : s.n;
+  // the list has done its job once one of them is being built, and it is long enough
+  // that leaving it open means scrolling past it to every clip
+  setFolded(sel !== null);
   renderList();
   renderWork();
+  if (sel !== null) els.work.scrollIntoView({ behavior: "smooth", block: "start" });
   save();
+}
+
+function setFolded(on) {
+  folded = !!on;
+  els.listWrap.classList.toggle("folded", folded);
+  els.fold.setAttribute("aria-expanded", String(!folded));
+  els.foldText.textContent = shorts.length
+    ? shorts.length + " candidate" + (shorts.length === 1 ? "" : "s") +
+      (folded ? " — show them again" : "")
+    : "";
+  els.fold.hidden = !shorts.length;
 }
 
 /* ---------------- render: the clips for the chosen Short ---------------- */
@@ -548,7 +532,12 @@ function renderWork() {
   clips.forEach((c, i) => {
     const node = els.clipTpl.content.firstElementChild.cloneNode(true);
     node.querySelector(".mg-video-title").textContent = "Clip " + (i + 1);
-    node.querySelector(".sh-cliplen").textContent = MG.lenLabel(c.len) + "s";
+    // what to pick in Flow, which is the only number I act on: the measured length is
+    // already visible as the timecodes under the clip
+    const flow = node.querySelector(".sh-cliplen");
+    flow.textContent = MG.renderSeconds(c.len) + "s";
+    flow.title = "Pick " + MG.renderSeconds(c.len) + "s in Flow — this clip carries " +
+      MG.fmt(c.len) + "s of narration";
     node.querySelectorAll(".mg-char input").forEach(r => {
       r.name = "sh-char-" + s.n + "-" + i;
       r.checked = r.value === c.char;
@@ -569,18 +558,6 @@ function renderWork() {
     meta.classList.toggle("warn", note.warn);
     els.clips.appendChild(node);
   });
-
-  const longest = Math.max.apply(null, clips.map(c => c.len));
-  els.clipMeta.textContent = clips.length + " clip" + (clips.length === 1 ? "" : "s") +
-    ", longest " + MG.lenLabel(longest) + "s" +
-    (longest > CLIP_MAX + 0.05 ? " — longer than Flow can render" : "");
-  els.clipMeta.classList.toggle("warn", longest > CLIP_MAX + 0.05);
-  // asking for fewer clips is refused rather than ignored when the line boundaries do not
-  // allow it: at 10s a clip, a run often has exactly one legal shape
-  const list = units.slice(s.from - 1, s.to);
-  els.fewer.disabled = clips.length <= 1 ||
-    splitClips(list, clips.length - 1).length >= clips.length;
-  els.more.disabled = clips.length >= list.length;
 
   els.mgReply.value = w.reply;
   refreshRequest();
@@ -637,19 +614,9 @@ function renderPrompts(filled, scenes) {
   filled.forEach((v, i) => {
     const mode = MG.characterMode(filled, i);
     const node = els.promptTpl.content.firstElementChild.cloneNode(true);
-    const render = MG.renderSeconds(v.len);
     node.querySelector(".mg-prompt-title").textContent =
-      "Clip " + (i + 1) + " — " + MG.lenLabel(v.len) + "s · " + MG.NAMES[v.char].label;
-    node.querySelector(".mg-attach").textContent =
-      "Attach in Flow: " + MG.attachLine(v, mode, i, filled[i - 1]);
-    const trim = node.querySelector(".mg-trim");
-    if (render !== v.len) {
-      const end = MG.sceneWindow(v.len, false)[1];
-      trim.textContent = "In Flow pick " + render + "s, then trim the download to its first " +
-        MG.fmt(v.len) + "s. The action ends at " + MG.fmt(end) +
-        "s; everything after is the frozen final frame.";
-      trim.hidden = false;
-    }
+      "Clip " + (i + 1) + " — " + MG.renderSeconds(v.len) + "s in Flow · " +
+      MG.NAMES[v.char].label;
     const box = node.querySelector(".mg-prompt-text");
     const button = node.querySelector(".mg-copy-prompt");
     if (scenes[i + 1]) box.value = MG.buildFlowPrompt(v, mode, scenes[i + 1]);
@@ -660,11 +627,6 @@ function renderPrompts(filled, scenes) {
     }
     els.prompts.appendChild(node);
   });
-}
-
-function renderLines() {
-  els.lineWrap.hidden = !units.length;
-  els.lineBox.textContent = numberedScript();
 }
 
 /* ---------------- state ---------------- */
@@ -757,31 +719,22 @@ els.promptCopy.addEventListener("click", () => copyText(els.promptOut.value));
 
 els.reply.addEventListener("input", () => {
   shorts = parseShorts(els.reply.value);
-  if (!shorts.some(s => s.n === sel)) sel = null;
+  if (!shorts.some(s => s.n === sel)) { sel = null; folded = false; }
+  setFolded(folded);
   renderList();
   renderWork();
   save();
 });
 
 els.workClose.addEventListener("click", () => {
-  sel = null; renderList(); renderWork(); save();
-});
-
-els.fewer.addEventListener("click", () => bumpClips(-1));
-els.more.addEventListener("click", () => bumpClips(1));
-
-function bumpClips(d) {
-  const s = selected();
-  if (!s) return;
-  const w = work[s.n] || (work[s.n] = {});
-  const now = clipsFor(s).length;
-  const want = Math.max(1, now + d);
-  if (splitClips(units.slice(s.from - 1, s.to), want).length === now) return;
-  w.clipCount = want;
-  delete w.texts;                       // the clips are cut differently now
+  sel = null;
+  setFolded(false);
+  renderList();
   renderWork();
   save();
-}
+});
+
+els.fold.addEventListener("click", () => setFolded(!folded));
 
 els.copyReq.addEventListener("click", () => {
   if (!els.request.value) return;
@@ -807,12 +760,12 @@ els.prompts.addEventListener("click", e => {
 
 $("shCopyInstructions").addEventListener("click", () => {
   copyText(SHORTS_PROJECT_INSTRUCTIONS);
-  els.setupStatus.textContent = "Copied — paste it into a Claude Project called \u201cShorts Finder\u201d.";
+  els.setupStatus.textContent = "Copied — paste into \u201cShorts Finder\u201d";
 });
 
 $("mgCopyInstructions").addEventListener("click", () => {
   copyText(MG.PROJECT_INSTRUCTIONS);
-  els.setupStatus.textContent = "Copied — paste it into your MG Prompt Gen project's instructions.";
+  els.setupStatus.textContent = "Copied — paste into \u201cMG Prompt Gen\u201d";
 });
 
 // Only while this tab is showing — the other tabs have their own boxes.
@@ -840,6 +793,7 @@ rebuildUnits();
 shorts = (saved && Array.isArray(saved.shorts) && saved.shorts.length)
   ? saved.shorts : parseShorts(els.reply.value);
 if (!shorts.some(s => s.n === sel)) sel = null;
+setFolded(sel !== null);
 renderList();
 renderWork();
 

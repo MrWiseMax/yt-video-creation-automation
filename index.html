@@ -450,18 +450,11 @@
       <div>
         <span class="step-tag">Shorts · find them, then build the clips</span>
         <h2>✂️ Shorts Finder</h2>
-        <p class="lede">Drop in the video's <span class="filename">Transcript.srt</span> and it does the
-        whole Shorts job. First it writes a request for your <b>Shorts Finder</b> project, hunting for the
-        stretches that hold a stranger <em>and</em> make them want the full video — Claude answers with
-        <b>line numbers</b>, so what you see is the transcript word for word, with real timecodes to scrub
-        to. Then <b>click a candidate</b> and it cuts that stretch into Flow-sized clips, measures each
-        one's length off the timings, and writes the request for your <b>MG Prompt Gen</b> project. Both
-        steps run in the Claude app, so neither costs API credits.</p>
       </div>
       <div class="mg-setup">
         <button type="button" class="btn secondary" id="shCopyInstructions">📋 "Shorts Finder" project</button>
         <button type="button" class="btn secondary" id="mgCopyInstructions">📋 "MG Prompt Gen" project</button>
-        <small id="mgSetupStatus">One-time setup — one Claude Project each</small>
+        <small id="mgSetupStatus">One-time setup, one Project each</small>
       </div>
     </div>
 
@@ -502,18 +495,22 @@
         <textarea id="shPromptOut" class="promptout" rows="14" readonly></textarea>
         <button class="btn" id="shPromptCopy">📋 Copy full prompt</button>
       </div>
-      <p class="mg-hint"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> builds the request. The rules live in the project’s instructions, so the request itself is just this video.</p>
     </div>
 
     <div class="card">
       <h3>1. Claude's reply — the Shorts</h3>
-      <label for="shReply">Paste it whole <span class="lbl-note">(the line numbers in it turn into the cut
-        list below — nudge any range a line either way with the − and + buttons)</span></label>
+      <label for="shReply">Paste it whole <span class="lbl-note">(the line numbers in it turn
+        into the cut list below)</span></label>
       <textarea id="shReply" class="mono" rows="5" placeholder="Paste Claude's whole reply here"></textarea>
       <div class="settingsstatus" id="shReplyStatus"></div>
     </div>
 
-    <div id="shList" class="sh-list"></div>
+    <button type="button" class="sh-fold" id="shFold" hidden aria-expanded="true">
+      <span class="sh-chev" aria-hidden="true">▾</span><span id="shFoldText"></span>
+    </button>
+    <div class="sh-listwrap" id="shListWrap">
+      <div id="shList" class="sh-list"></div>
+    </div>
 
     <section id="shWork" hidden>
       <div class="sh-workhead">
@@ -523,14 +520,6 @@
       <div class="mg-grid">
         <section>
           <div id="mgVideos"></div>
-          <div class="sh-controls">
-            <span class="sh-meta" id="shClipMeta"></span>
-            <button type="button" class="sh-nb" id="shFewer" title="Fewer, longer clips">−</button>
-            <button type="button" class="sh-nb" id="shMore" title="More, shorter clips">+</button>
-          </div>
-          <p class="mg-hint">Every length is measured off the transcript, so there is nothing to pick.
-          − and + trade fewer, longer clips against more, shorter ones — Flow charges per clip, and a
-          longer one carries more of the story.</p>
         </section>
 
         <section>
@@ -552,10 +541,6 @@
       </div>
     </section>
 
-    <details class="card sh-gap" id="shLinesWrap" hidden>
-      <summary>The numbered transcript</summary>
-      <pre class="sh-script" id="shLines"></pre>
-    </details>
   </main>
 
   <template id="mgVideoTpl">
@@ -579,8 +564,6 @@
         <h3 class="mg-prompt-title">Clip 1</h3>
         <button type="button" class="btn mg-copy-prompt">📋 Copy</button>
       </div>
-      <p class="mg-attach"></p>
-      <p class="mg-trim" hidden></p>
       <textarea class="mg-prompt-text mono" rows="9" readonly></textarea>
     </div>
   </template>

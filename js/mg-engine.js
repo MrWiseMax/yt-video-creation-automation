@@ -68,12 +68,11 @@ function sceneWindow(len, chained) {
   return [chained ? START_HOLD : 0, len - END_HOLD];
 }
 
-// Flow renders only 8s or 10s clips. A length in between is rendered at the next one up
-// and trimmed afterwards: 9s at 10s, 7s at 8s. Everything else - the request to Claude,
-// the scene window, the settle 0.7s before the cut - is planned for the real length, so
-// Claude never has to know. Only the Flow prompt is told the render is longer, and to
-// freeze the extra.
-const FLOW_LENGTHS = [8, 10];
+// Flow renders 6s, 8s or 10s clips. A measured length in between is rendered at the next
+// one up: 7.3s at 8s, 8.8s at 10s. Everything else - the request to Claude, the scene
+// window, the settle 0.7s before the cut - is planned for the real length, so Claude never
+// has to know. Only the Flow prompt is told the render is longer, and to freeze the extra.
+const FLOW_LENGTHS = [6, 8, 10];
 
 function renderSeconds(len) {
   return FLOW_LENGTHS.find((f) => f >= len - 0.001) || FLOW_LENGTHS[FLOW_LENGTHS.length - 1];
@@ -228,17 +227,6 @@ function buildFlowPrompt(video, mode, scenes) {
   return parts.join('\n\n');
 }
 
-// prev = the video before this one, whose last frame this one starts on.
-function attachLine(video, mode, index, prev) {
-  const own = video.char === 'own';
-  if (mode === 'first') return own ? 'your character image as the reference image' : 'nothing, text only';
-  const cut = prev && renderSeconds(prev.len) !== prev.len ? ` (after trimming it to ${lenLabel(prev.len)}s)` : '';
-  const start = `the last frame of Video ${index}${cut} as the start frame`;
-  if (!own) return start;
-  return mode === 'switch'
-    ? `${start}, plus your character image (important: the mascot is not in the start frame)`
-    : `${start}, plus your character image if Flow allows a second image`;
-}
 
 // ---------- what the Shorts Finder uses ----------
 
@@ -253,7 +241,6 @@ window.MG = {
   buildRequest,
   parseReply,
   buildFlowPrompt,
-  attachLine,
   PROJECT_INSTRUCTIONS,
 };
 
