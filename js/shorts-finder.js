@@ -212,14 +212,53 @@ function numberedScript() {
   ).join("\n");
 }
 
-function buildShortsPrompt() {
-  const win = clipWindow(clipTarget);
-  return [
-"Act as a YouTube Shorts editor.",
+/* The fixed half, pasted once into a Claude Project called "Shorts Finder". Everything
+   that does not change between videos lives here, which is what lets the per-video request
+   below be nothing but the clip window and the transcript — the same split the MG Project
+   uses. The clip count DOES change run to run, so it travels in the request and the rules
+   here only describe how to read it. */
+const SHORTS_EXAMPLE_REQUEST = [
+"Shorts for this video: 2 clips each, so 12-20 seconds per Short, 16 being the sweet spot.",
 "",
-"Below is the complete narration of a long-form video I have already published, taken from its subtitle file. I cut Shorts out of it using the footage and the narration exactly as they are — no re-recording, no reordering — and every Short links back to the full video.",
+" 1 | 3.4s | A GUY IN MY COMMENTS GOT A RAISE LAST YEAR,",
+" 2 | 3.6s | $900 MORE EVERY SINGLE MONTH.",
+" 3 | 2.9s | 14 MONTHS LATER, HE OWED MORE THAN THE DAY HE GOT IT.",
+" 4 | 3.1s | NOT BECAUSE HE WAS RECKLESS. HE WAS NORMAL.",
+" 5 | 3.3s | THE MONTH YOUR INCOME MOVES, THE OFFERS SHOW UP.",
+" 6 | 2.8s | PRE-APPROVED. CONGRATULATIONS, YOU HAVE BEEN UPGRADED.",
+" 7 | 3.0s | THAT IS NOT LUCK, AND IT IS NOT A COINCIDENCE.",
+" 8 | 3.4s | YOUR CREDIT FILE IS A PRODUCT, AND SOMEBODY WHOSE INCOME JUST WENT UP",
+" 9 | 2.6s | IS THE MOST VALUABLE NAME ON THAT LIST.",
+].join("\n");
+
+const SHORTS_EXAMPLE_REPLY = [
+"SHORT 1 | lines 5-9 | 9/10 | Offers follow your raise",
+"HOOK: Your raise is their payday",
+"PULL: what should I do first when my income goes up?",
+"WHY: Everyone has had the pre-approved letter, so the first line lands instantly, and in fifteen seconds it turns a lucky offer into proof that the viewer is the product — without saying what to do instead.",
 "",
-"So a Short here has ONE job: hold a stranger all the way to the end, and leave them wanting the rest. Those are two different things and a stretch has to do both.",
+"SHORT 2 | lines 1-4 | 8/10 | He owed more after the raise",
+"HOOK: $900 more a month. Still broke.",
+"PULL: how does a raise leave someone worse off?",
+"WHY: The number and the reversal both land inside seven seconds, and it names the trap without explaining it.",
+"",
+"Almost: lines 1-9 together would be the strongest cut here, but at 28 seconds it needs 3 clips, not 2.",
+].join("\n");
+
+const SHORTS_PROJECT_INSTRUCTIONS = [
+"You find the stretches of my long-form YouTube videos that work as Shorts. I cut them out of the finished video using the footage and the narration exactly as they are — no re-recording, no reordering — and every Short links back to the full video. Do not ask me questions and do not explain yourself; just reply in the output format.",
+"",
+"== WHAT I SEND YOU ==",
+"",
+"One line saying how many motion-graphics clips I am building each Short out of and the length window that gives me, then the whole narration of one finished video, taken from its subtitle file:",
+"",
+"  line number | how long it takes to say | the words",
+"",
+"It is a transcript, so it is in capitals. The line numbers are what my app reads to pull the lines back out of my own copy of the script, so an off-by-one lands me on the wrong cut.",
+"",
+"== THE JOB ==",
+"",
+"A Short has ONE job: hold a stranger all the way to the end, and leave them wanting the rest. Those are two different things and a stretch has to do both.",
 "",
 "HOLD — it has to work as a video on its own:",
 "1. IT HOOKS IN THREE SECONDS. The first line has to stop a thumb by itself: a surprising claim, a hard number, a direct \"you\", a question, or a scene the viewer is already standing in.",
@@ -232,21 +271,17 @@ function buildShortsPrompt() {
 "",
 "MECHANICS:",
 "6. ONE UNBROKEN RUN of line numbers, in order. I am cutting the existing edit, so I cannot skip a line in the middle or stitch two distant parts together.",
-"7. IT FITS THE SHAPE I BUILD. I make every Short out of exactly " + win.n + " motion-graphics clips, and no clip can run longer than " + CLIP_MAX + " seconds. Every line below is printed with how many seconds it takes to say — add them up. The range has to land between " + Math.round(win.min) + " and " + Math.round(win.max) + " seconds, and about " + Math.round(win.ideal) + " seconds is the sweet spot: at the very top of that window it often will not divide into " + win.n + " pieces at line boundaries. Outside the window I cannot build it at all, however well it reads, so do not offer it.",
+"7. IT FITS THE WINDOW at the top of the request. A motion-graphics clip can be at most 10 seconds and is wasteful under about 6, so the clip count I give you is what sets that window. Add up the per-line seconds and check before you commit to a range. Aim near the middle of the window: at the very top of it a range often will not divide into that many pieces at line boundaries. Outside the window I cannot build it at all, however well it reads, so do not offer it.",
 "",
 "Score each one on that whole job together — how many people it holds to the end AND how many of those then go looking for the full video. A stretch that holds beautifully but closes the subject completely is worth less to me than one that holds well and leaves a door open.",
 "",
-"--- THE NARRATION ---",
+"== WHAT TO GIVE ME ==",
 "",
-"line number | how long it takes to say | the words. It is a transcript, so it is in capitals. Use the line numbers exactly as printed — they are what my app reads to pull the lines back out, so an off-by-one lands me on the wrong cut.",
+"EVERY stretch that does both jobs and lands inside the window, best first. There is no target number of Shorts: some scripts hold two of these and some hold seven, and I would rather have two strong ones than eight I have to sift through. If a stretch only half works, leave it out and say so at the end instead.",
 "",
-numberedScript(),
+"== OUTPUT FORMAT ==",
 "",
-"--- WHAT I WANT ---",
-"",
-"EVERY stretch that does both jobs AND lands inside that " + Math.round(win.min) + "–" + Math.round(win.max) + " second window — best first. There is no target number of Shorts: some scripts hold two of these and some hold seven, and I would rather have two strong ones than eight I have to sift through. If a stretch only half works, leave it out and say so at the end instead.",
-"",
-"For each one, start with a line in EXACTLY this shape and nothing else on it:",
+"For each one, a line in EXACTLY this shape and nothing else on it:",
 "",
 "SHORT 1 | lines 42-55 | 9/10 | A short label for it",
 "",
@@ -258,11 +293,27 @@ numberedScript(),
 "PULL: the one thing the viewer still wants to know when it ends, in their words, starting \"what/why/how...\" — this is the reason they click the full video",
 "WHY: one sentence on why this holds a stranger, and what it gives them before it opens the door",
 "",
-"Then a blank line before the next one.",
+"Then a blank line before the next one. After the list, name any stretch that ALMOST works and what is missing — a line that needs re-recording, a payoff that lands two lines too late, a range that is the right idea at the wrong length.",
 "",
-"Two more things, after the list:",
-"- Name any stretch that ALMOST works and what is missing — a line that needs re-recording, a payoff that lands two lines too late.",
-"- Do not ask me clarifying questions first. Just deliver.",
+"== EXAMPLE ==",
+"",
+"I send:",
+"",
+SHORTS_EXAMPLE_REQUEST,
+"",
+"You reply:",
+"",
+SHORTS_EXAMPLE_REPLY,
+].join("\n");
+
+/* ...and the per-video half: the window I want this time, and the transcript. */
+function buildShortsRequest() {
+  const win = clipWindow(clipTarget);
+  return [
+"Shorts for this video: " + win.n + " clips each, so " + Math.round(win.min) + "-" +
+  Math.round(win.max) + " seconds per Short, " + Math.round(win.ideal) + " being the sweet spot.",
+"",
+numberedScript(),
   ].join("\n");
 }
 
@@ -697,7 +748,7 @@ els.srtClear.addEventListener("click", e => {
 
 els.buildBtn.addEventListener("click", () => {
   if (!units.length) { toast("Pick the video's Transcript.srt first", true); return; }
-  els.promptOut.value = buildShortsPrompt();
+  els.promptOut.value = buildShortsRequest();
   els.promptWrap.style.display = "block";
   els.promptWrap.scrollIntoView({ behavior: "smooth", block: "nearest" });
 });
@@ -754,9 +805,14 @@ els.prompts.addEventListener("click", e => {
   setTimeout(() => { button.textContent = "📋 Copy"; }, 1500);
 });
 
+$("shCopyInstructions").addEventListener("click", () => {
+  copyText(SHORTS_PROJECT_INSTRUCTIONS);
+  els.setupStatus.textContent = "Copied — paste it into a Claude Project called \u201cShorts Finder\u201d.";
+});
+
 $("mgCopyInstructions").addEventListener("click", () => {
   copyText(MG.PROJECT_INSTRUCTIONS);
-  els.setupStatus.textContent = "Copied. Paste it into your Claude Project's instructions.";
+  els.setupStatus.textContent = "Copied — paste it into your MG Prompt Gen project's instructions.";
 });
 
 // Only while this tab is showing — the other tabs have their own boxes.

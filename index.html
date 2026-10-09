@@ -451,16 +451,17 @@
         <span class="step-tag">Shorts · find them, then build the clips</span>
         <h2>✂️ Shorts Finder</h2>
         <p class="lede">Drop in the video's <span class="filename">Transcript.srt</span> and it does the
-        whole Shorts job. First it builds a prompt that hunts for the stretches standing on their own as a
-        Short <em>and</em> make the viewer want the full video — Claude answers with <b>line numbers</b>,
-        so what you see is the transcript word for word,
-        with real timecodes to scrub to. Then <b>click a candidate</b> and it cuts that stretch into
-        Flow-sized clips, measures each one's length off the timings, and builds the motion-graphics prompts.
-        Both steps run in the Claude app, so neither costs API credits.</p>
+        whole Shorts job. First it writes a request for your <b>Shorts Finder</b> project, hunting for the
+        stretches that hold a stranger <em>and</em> make them want the full video — Claude answers with
+        <b>line numbers</b>, so what you see is the transcript word for word, with real timecodes to scrub
+        to. Then <b>click a candidate</b> and it cuts that stretch into Flow-sized clips, measures each
+        one's length off the timings, and writes the request for your <b>MG Prompt Gen</b> project. Both
+        steps run in the Claude app, so neither costs API credits.</p>
       </div>
       <div class="mg-setup">
-        <button type="button" class="btn secondary" id="mgCopyInstructions">📋 Copy project instructions</button>
-        <small id="mgSetupStatus">One-time setup for your Claude Project</small>
+        <button type="button" class="btn secondary" id="shCopyInstructions">📋 "Shorts Finder" project</button>
+        <button type="button" class="btn secondary" id="mgCopyInstructions">📋 "MG Prompt Gen" project</button>
+        <small id="mgSetupStatus">One-time setup — one Claude Project each</small>
       </div>
     </div>
 
@@ -492,16 +493,16 @@
       </div>
 
       <div class="sh-controls">
-        <button class="btn" id="shBuildBtn">⚙ Build the Shorts prompt</button>
+        <button class="btn" id="shBuildBtn">⚙ Build the Shorts request</button>
         <span class="sh-meta">It finds however many are genuinely worth posting — two in one
         script, seven in another.</span>
       </div>
       <div class="sf-outwrap" id="shPromptWrap" style="display:none">
-        <label>Ready-to-paste prompt</label>
+        <label>Paste this into a new chat in your <b>Shorts Finder</b> project</label>
         <textarea id="shPromptOut" class="promptout" rows="14" readonly></textarea>
         <button class="btn" id="shPromptCopy">📋 Copy full prompt</button>
       </div>
-      <p class="mg-hint"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> builds the prompt.</p>
+      <p class="mg-hint"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> builds the request. The rules live in the project’s instructions, so the request itself is just this video.</p>
     </div>
 
     <div class="card">
