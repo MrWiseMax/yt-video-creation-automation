@@ -43,9 +43,10 @@ const UNIT_MIN = 2.0;            // ...unless breaking would leave a stub shorte
 const CLIP_MAX = 10.0;           // Flow's longest render
 
 // ---- what counts as a Short ----------------------------------------------------------
-const SHORT_MIN_SECS = 15, SHORT_MAX_SECS = 58;
-const SWEET_MIN = 20, SWEET_MAX = 45;
-const DEFAULT_COUNT = 8;
+// Both of mine so far ran about 18s, and a Short whose job is to send people somewhere
+// else does not need to be long - it needs to stop and then point.
+const SHORT_MIN_SECS = 10, SHORT_MAX_SECS = 58;
+const SWEET_MIN = 15, SWEET_MAX = 45;
 const DEFAULT_CHAR = "own";
 
 const els = {
@@ -53,7 +54,6 @@ const els = {
   srtFile:    $("shSrtFile"),
   srtMeta:    $("shSrtMeta"),
   srtClear:   $("shSrtClear"),
-  count:      $("shCount"),
   buildBtn:   $("shBuildBtn"),
   promptWrap: $("shPromptWrap"),
   promptOut:  $("shPromptOut"),
@@ -194,24 +194,28 @@ function numberedScript() {
   ).join("\n");
 }
 
-function buildShortsPrompt(want) {
+function buildShortsPrompt() {
   return [
 "Act as a YouTube Shorts editor.",
 "",
-"Below is the complete narration of a long-form video I have already finished, taken from its subtitle file. I want to cut Shorts out of it using the footage and the narration exactly as they are — no re-recording, no reordering. Your job is to find the stretches that stand on their own as a Short.",
+"Below is the complete narration of a long-form video I have already published, taken from its subtitle file. I cut Shorts out of it using the footage and the narration exactly as they are — no re-recording, no reordering — and every Short links back to the full video.",
 "",
-"A stretch only works as a Short if ALL of these are true:",
+"So a Short here has ONE job: hold a stranger all the way to the end, and leave them wanting the rest. Those are two different things and a stretch has to do both.",
 "",
-"1. SELF-CONTAINED. Someone who has never seen the long video understands it from its very first word. No \"that\", \"this\", \"so\", \"and that is why\", \"as I said\" pointing back at something that got cut away. If the first line only makes sense because of the line before it, the range starts in the wrong place — move it.",
-"2. IT HOOKS IN THREE SECONDS. The first line has to stop a thumb by itself: a surprising claim, a hard number, a direct \"you\", a question, or a scene the viewer is already standing in.",
-"3. ONE IDEA, AND IT LANDS. Something is opened and then closed inside the range — a question answered, a number revealed, a belief flipped. A stretch that is only setup, or only the conclusion of an argument that happened earlier, is not a Short.",
-"4. IT ENDS ON A PUNCH. The last line is a payoff, a reframe, or a question worth answering in the comments. Never mid-thought, and never trailing into the next topic.",
-"5. IT IS ONE UNBROKEN RUN of line numbers, in order. I am cutting the existing edit, so I cannot skip a line in the middle or stitch two distant parts together.",
-"6. IT FITS. Every line below is printed with how many seconds it takes to say. Add them up: a range should come to roughly " + SWEET_MIN + " to " + SWEET_MAX + " seconds, and never more than " + SHORT_MAX_SECS + ".",
+"HOLD — it has to work as a video on its own:",
+"1. IT HOOKS IN THREE SECONDS. The first line has to stop a thumb by itself: a surprising claim, a hard number, a direct \"you\", a question, or a scene the viewer is already standing in.",
+"2. IT STARTS CLEAN. No \"that\", \"this\", \"so\", \"and that is why\", \"as I said\" pointing back at something that got cut away. If the first line only makes sense because of the line before it, the range starts in the wrong place — move it.",
+"3. IT GIVES SOMETHING REAL. One idea, delivered inside the range: a number revealed, a belief flipped, a thing named. A pure tease that pays off nothing gets swiped away in two seconds, and YouTube stops showing it to anyone — which means it sends me no traffic at all.",
 "",
-"Rank them by how well each one would hold a cold viewer who has never heard of me — not by how important that part is to the long video.",
+"PULL — and it has to make the full video the obvious next click:",
+"4. IT LEAVES ONE SPECIFIC THING OPEN. The stretch answers its own question but raises a bigger one it does not answer: the number is revealed but not what to do about it, the mistake is named but not the fix, one of five reasons is given. Vague mystery does not work — the viewer has to be able to say exactly what they still want to know. That sentence is what you write as PULL.",
+"5. IT ENDS ON THE EDGE OF MORE. The last line is a payoff or a reframe that opens the door, never a tidy conclusion that closes the subject, and never mid-thought.",
 "",
-"Most of what you give me should be the self-contained kind above. At most two may be TEASER type: a hook or a promise from the opening that deliberately does not pay off, made to send people to the full video. Mark those honestly so I know what I am looking at.",
+"MECHANICS:",
+"6. ONE UNBROKEN RUN of line numbers, in order. I am cutting the existing edit, so I cannot skip a line in the middle or stitch two distant parts together.",
+"7. IT FITS. Every line below is printed with how many seconds it takes to say. Add them up: a range should come to roughly " + SWEET_MIN + " to " + SWEET_MAX + " seconds, and never more than " + SHORT_MAX_SECS + ".",
+"",
+"Score each one on that whole job together — how many people it holds to the end AND how many of those then go looking for the full video. A stretch that holds beautifully but closes the subject completely is worth less to me than one that holds well and leaves a door open.",
 "",
 "--- THE NARRATION ---",
 "",
@@ -221,7 +225,9 @@ numberedScript(),
 "",
 "--- WHAT I WANT ---",
 "",
-"The " + want + " best candidates, best first. For each one, start with a line in EXACTLY this shape and nothing else on it:",
+"EVERY stretch that does both jobs — best first. There is no target number: some scripts hold two of these and some hold seven, and I would rather have two strong ones than eight I have to sift through. If a stretch only half works, leave it out and say so at the end instead.",
+"",
+"For each one, start with a line in EXACTLY this shape and nothing else on it:",
 "",
 "SHORT 1 | lines 42-55 | 9/10 | A short label for it",
 "",
@@ -229,14 +235,14 @@ numberedScript(),
 "",
 "Then directly under it, these three lines and nothing else:",
 "",
-"TYPE: self-contained   (or: teaser)",
 "HOOK: the on-screen text for the first three seconds — six words or fewer",
-"WHY: one sentence on why this holds a stranger, and what the payoff is",
+"PULL: the one thing the viewer still wants to know when it ends, in their words, starting \"what/why/how...\" — this is the reason they click the full video",
+"WHY: one sentence on why this holds a stranger, and what it gives them before it opens the door",
 "",
 "Then a blank line before the next one.",
 "",
 "Two more things, after the list:",
-"- Name any part that ALMOST works but needs a line re-recorded, and say which line.",
+"- Name any stretch that ALMOST works and what is missing — a line that needs re-recording, a payoff that lands two lines too late.",
 "- Do not ask me clarifying questions first. Just deliver.",
   ].join("\n");
 }
@@ -259,14 +265,14 @@ function parseShorts(text) {
     if (m) {
       const a = +m[2], b = +m[3];
       cur = { n: +m[1], from: Math.min(a, b), to: Math.max(a, b),
-              score: m[4], label: clean(m[5]), type: "", hook: "", why: "" };
+              score: m[4], label: clean(m[5]), type: "", pull: "", hook: "", why: "" };
       out.push(cur);
       return;
     }
     if (!cur) return;
     const t = raw.replace(/^\s*(?:[-*>]\s*)+/, "").replace(/\*\*|__/g, "").trim();
     if (!t) return;
-    const kv = t.match(/^(TYPE|HOOK|WHY)\s*:\s*(.+)$/i);
+    const kv = t.match(/^(TYPE|PULL|HOOK|WHY)\s*:\s*(.+)$/i);
     if (kv) cur[kv[1].toLowerCase()] = clean(kv[2]);
     else if (!cur.why) cur.why = clean(t);        // a reply that skipped the labels
   });
@@ -402,6 +408,7 @@ function renderList() {
               (sel === s.n ? "✓ Building clips" : "→ Make the clips") + "</button>" : "") +
       "</div>" +
       (s.hook ? "<p class='sh-meta'><b>Hook text:</b> " + esc(s.hook) + "</p>" : "") +
+      (s.pull ? "<p class='sh-meta'><b>Leaves them asking:</b> " + esc(s.pull) + "</p>" : "") +
       (s.why ? "<p class='sh-meta'>" + esc(s.why) + "</p>" : "") +
     "</div>";
   }).join("");
@@ -594,7 +601,7 @@ function renderLines() {
 function save() {
   try {
     localStorage.setItem(KEY, JSON.stringify({
-      srt: srtText, reply: els.reply.value, count: els.count.value,
+      srt: srtText, reply: els.reply.value,
       shorts: shorts, sel: sel, work: work,
     }));
   } catch (e) { /* a full or blocked store is not worth a toast on every keystroke */ }
@@ -629,12 +636,9 @@ els.srtClear.addEventListener("click", () => {
   save();
 });
 
-els.count.addEventListener("change", save);
-
 els.buildBtn.addEventListener("click", () => {
   if (!units.length) { toast("Pick the video's Transcript.srt first", true); return; }
-  const want = Math.max(1, Math.min(20, +els.count.value || DEFAULT_COUNT));
-  els.promptOut.value = buildShortsPrompt(want);
+  els.promptOut.value = buildShortsPrompt();
   els.promptWrap.style.display = "block";
   els.promptWrap.scrollIntoView({ behavior: "smooth", block: "nearest" });
 });
@@ -710,7 +714,6 @@ const saved = load();
 if (saved) {
   if (typeof saved.srt === "string") srtText = saved.srt;
   if (typeof saved.reply === "string") els.reply.value = saved.reply;
-  if (saved.count) els.count.value = saved.count;
   if (saved.work && typeof saved.work === "object") work = saved.work;
   if (typeof saved.sel === "number") sel = saved.sel;
 }

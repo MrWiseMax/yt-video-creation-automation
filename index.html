@@ -452,7 +452,8 @@
         <h2>✂️ Shorts Finder</h2>
         <p class="lede">Drop in the video's <span class="filename">Transcript.srt</span> and it does the
         whole Shorts job. First it builds a prompt that hunts for the stretches standing on their own as a
-        Short — Claude answers with <b>line numbers</b>, so what you see is the transcript word for word,
+        Short <em>and</em> make the viewer want the full video — Claude answers with <b>line numbers</b>,
+        so what you see is the transcript word for word,
         with real timecodes to scrub to. Then <b>click a candidate</b> and it cuts that stretch into
         Flow-sized clips, measures each one's length off the timings, and builds the motion-graphics prompts.
         Both steps run in the Claude app, so neither costs API credits.</p>
@@ -474,9 +475,9 @@
       <p class="sh-meta" id="shSrtMeta"></p>
 
       <div class="sh-controls">
-        <label for="shCount">How many candidates</label>
-        <input type="number" id="shCount" value="8" min="1" max="20">
         <button class="btn" id="shBuildBtn">⚙ Build the Shorts prompt</button>
+        <span class="sh-meta">It finds however many are genuinely worth posting — two in one
+        script, seven in another.</span>
       </div>
       <div class="sf-outwrap" id="shPromptWrap" style="display:none">
         <label>Ready-to-paste prompt</label>
